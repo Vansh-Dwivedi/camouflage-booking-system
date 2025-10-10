@@ -75,9 +75,20 @@ app.use(async (req, res, next) => {
         
         // Try to initialize database with fallback handling
         try {
-          const dbModule = require('../config/database');
-          const sequelize = dbModule.sequelize;
-          const testConnection = dbModule.testConnection;
+          // First try the alternative database configuration
+          let dbModule, sequelize, testConnection;
+          
+          try {
+            dbModule = require('../config/database-alt');
+            sequelize = await dbModule.createSequelizeInstance();
+            testConnection = dbModule.testConnection;
+            console.log('🔄 Using alternative database configuration');
+          } catch (altError) {
+            console.log('Alternative DB failed, trying original:', altError.message);
+            dbModule = require('../config/database');
+            sequelize = dbModule.sequelize;
+            testConnection = dbModule.testConnection;
+          }
           
           await testConnection();
           await sequelize.sync({ force: true }); // Force sync for in-memory database
