@@ -9,7 +9,8 @@
     "build": "node scripts/seedData.js",
     "seed": "node scripts/seedData.js",
     "vercel-build": "npm run seed",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "npm rebuild better-sqlite3"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -25,6 +26,7 @@
   "license": "MIT",
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^12.4.1",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
