@@ -1,18 +1,14 @@
-const { sequelize } = require('../config/database');
-const { User, Service, Booking } = require('../models');
+const { db, initializeDatabase } = require('../config/database');
 require('dotenv').config();
 
-// Initialize database
-async function initializeDB() {
+// Initialize JSON database
+async function initializeJsonDB() {
   try {
-    await sequelize.authenticate();
-    console.log('✅ Connected to SQLite database');
-    
-    // Sync database (create tables)
-    await sequelize.sync({ force: true }); // force: true drops existing tables
-    console.log('✅ Database synchronized');
+    await initializeDatabase();
+    console.log('✅ Connected to JSON database');
+    console.log('✅ JSON Database initialized with sample data');
   } catch (error) {
-    console.error('❌ Database connection error:', error);
+    console.error('❌ JSON Database initialization error:', error);
     process.exit(1);
   }
 }
@@ -346,29 +342,21 @@ async function seedBookings(users, services) {
 // Main seeding function
 async function seedDatabase() {
   try {
-    console.log('🌱 Starting database seeding...');
+    console.log('🌱 Starting JSON database seeding...');
     
-    // Initialize database
-    await initializeDB();
+    // Initialize JSON database (automatically seeds with initial data)
+    await initializeJsonDB();
     
-    // Seed users
-    const users = await seedUsers();
-    
-    // Seed services
-    const services = await seedServices();
-    
-    // Seed bookings
-    const bookings = await seedBookings(users, services);
-    
-    console.log('✅ Database seeding completed successfully!');
-    console.log('\n🎯 Demo Accounts Created:');
+    console.log('✅ JSON Database seeding completed successfully!');
+    console.log('\n🎯 Demo Accounts Available:');
     console.log('Admin: admin@camouflage.com / admin123');
-    console.log('Customer: customer@example.com / customer123');
+    console.log('\n💾 Database Type: JSON File Storage');
+    console.log('📁 Database Location: data/database.json');
     console.log('\n🚀 You can now start the server with: npm start');
     
     process.exit(0);
   } catch (error) {
-    console.error('❌ Database seeding failed:', error);
+    console.error('❌ JSON Database seeding failed:', error);
     process.exit(1);
   }
 }

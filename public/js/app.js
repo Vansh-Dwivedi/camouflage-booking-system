@@ -3,6 +3,12 @@ const API_BASE_URL = '';
 let currentUser = null;
 let socket = null;
 
+// Log database type for debugging
+console.log('🚀 Camouflage Booking System');
+console.log('💾 Database: JSON File Storage');
+console.log('🔧 Backend: Node.js + Express.js');
+console.log('📡 Real-time: Socket.IO (Local only)');
+
 // Initialize Socket.IO connection
 function initializeSocket() {
     // Skip Socket.IO for production deployment (Vercel doesn't support WebSockets)

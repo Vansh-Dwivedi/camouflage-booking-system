@@ -1,18 +1,19 @@
-const User = require('./User');
-const Service = require('./Service');
-const Booking = require('./Booking');
-const Setting = require('./Setting');
+// Legacy Sequelize models - No longer used with JSON Database
+// Keeping for backwards compatibility and reference
 
-// Define associations
-User.hasMany(Booking, { foreignKey: 'customerId', as: 'bookings' });
-Booking.belongsTo(User, { foreignKey: 'customerId', as: 'customer' });
+// Note: This application now uses JSON file storage instead of Sequelize/SQLite
+// The JSON database is managed in config/jsonDatabase.js
+// All data operations are handled through the JSON database methods
 
-Service.hasMany(Booking, { foreignKey: 'serviceId', as: 'bookings' });
-Booking.belongsTo(Service, { foreignKey: 'serviceId', as: 'service' });
+console.log('⚠️ Sequelize models loaded for compatibility - Using JSON Database instead');
 
+// Placeholder exports for legacy code that might still reference these
 module.exports = {
-  User,
-  Service,
-  Booking,
-  Setting
+  User: null, // Use jsonDatabase.findUserById(), etc.
+  Service: null, // Use jsonDatabase.findAllServices(), etc.  
+  Booking: null, // Use jsonDatabase.findAllBookings(), etc.
+  Setting: null, // Use jsonDatabase.findAllSettings(), etc.
+  
+  // Helper message
+  _message: 'This app now uses JSON Database. See config/jsonDatabase.js'
 };
