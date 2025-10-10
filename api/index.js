@@ -35,10 +35,12 @@ app.get('/api/debug', (req, res) => {
     timestamp: new Date().toISOString(),
     dbInitialized: dbInitialized,
     routesAdded: routesAdded,
+    useFallback: app.get('useFallback') || false,
     environment: process.env.NODE_ENV,
     vercel: !!process.env.VERCEL,
     path: req.path,
-    method: req.method
+    method: req.method,
+    sqliteAvailable: 'checking...'
   });
 });
 
@@ -71,79 +73,96 @@ app.use(async (req, res, next) => {
       try {
         console.log('🔄 Initializing database for:', req.path);
         
-        const { sequelize, testConnection } = require('../config/database');
-        await testConnection();
-        await sequelize.sync({ force: true }); // Force sync for in-memory database
-        
-        // If using Vercel (in-memory database), seed with initial data
-        if (process.env.VERCEL === '1') {
-          console.log('🌱 Seeding database for serverless environment...');
+        // Try to initialize database with fallback handling
+        try {
+          const dbModule = require('../config/database');
+          const sequelize = dbModule.sequelize;
+          const testConnection = dbModule.testConnection;
           
-          // Import models
-          const { User, Service, Setting } = require('../models');
+          await testConnection();
+          await sequelize.sync({ force: true }); // Force sync for in-memory database
           
-          // Create admin user
-          const bcrypt = require('bcryptjs');
-          const adminPassword = await bcrypt.hash('admin123', 10);
-          await User.create({
-            email: 'admin@camouflage.com',
-            password: adminPassword,
-            name: 'Admin User',
-            phone: '+1234567890',
-            role: 'admin'
-          });
+          // If using Vercel (in-memory database), seed with initial data
+          if (process.env.VERCEL === '1') {
+            console.log('🌱 Seeding database for serverless environment...');
+            
+            // Import models
+            const { User, Service, Setting } = require('../models');
+            
+            // Create admin user
+            const bcrypt = require('bcryptjs');
+            const adminPassword = await bcrypt.hash('admin123', 10);
+            await User.create({
+              email: 'admin@camouflage.com',
+              password: adminPassword,
+              name: 'Admin User',
+              phone: '+1234567890',
+              role: 'admin'
+            });
+            
+            // Create sample services
+            await Service.bulkCreate([
+              {
+                name: 'Bridal Makeup',
+                description: 'Complete bridal makeup package with trial session',
+                duration: 180,
+                price: 250.00,
+                category: 'bridal',
+                isActive: true
+              },
+              {
+                name: 'Party Makeup',
+                description: 'Glamorous makeup for special occasions',
+                duration: 90,
+                price: 80.00,
+                category: 'party',
+                isActive: true
+              },
+              {
+                name: 'Natural Look',
+                description: 'Subtle, everyday makeup look',
+                duration: 60,
+                price: 50.00,
+                category: 'natural',
+                isActive: true
+              }
+            ]);
+            
+            // Create settings
+            await Setting.bulkCreate([
+              { key: 'businessName', value: 'Camouflage Beauty Studio' },
+              { key: 'businessEmail', value: 'booking@camouflage.com' },
+              { key: 'businessPhone', value: '+1234567890' },
+              { key: 'businessAddress', value: '123 Beauty Street, City, State 12345' },
+              { key: 'workingHours', value: '{"start": "09:00", "end": "18:00"}' },
+              { key: 'workingDays', value: '["monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]' },
+              { key: 'bookingBuffer', value: '15' },
+              { key: 'maxAdvanceBooking', value: '30' },
+              { key: 'autoConfirm', value: 'false' },
+              { key: 'smsNotifications', value: 'true' },
+              { key: 'emailNotifications', value: 'true' },
+              { key: 'twilioAccountSid', value: process.env.TWILIO_ACCOUNT_SID || '' },
+              { key: 'twilioAuthToken', value: process.env.TWILIO_AUTH_TOKEN || '' },
+              { key: 'twilioPhoneNumber', value: process.env.TWILIO_PHONE_NUMBER || '' }
+            ]);
+            
+            console.log('✅ Database seeded successfully');
+          }
           
-          // Create sample services
-          await Service.bulkCreate([
-            {
-              name: 'Bridal Makeup',
-              description: 'Complete bridal makeup package with trial session',
-              duration: 180,
-              price: 250.00,
-              category: 'bridal',
-              isActive: true
-            },
-            {
-              name: 'Party Makeup',
-              description: 'Glamorous makeup for special occasions',
-              duration: 90,
-              price: 80.00,
-              category: 'party',
-              isActive: true
-            },
-            {
-              name: 'Natural Look',
-              description: 'Subtle, everyday makeup look',
-              duration: 60,
-              price: 50.00,
-              category: 'natural',
-              isActive: true
-            }
-          ]);
+          console.log('✅ Database initialized with SQLite');
           
-          // Create settings
-          await Setting.bulkCreate([
-            { key: 'businessName', value: 'Camouflage Beauty Studio' },
-            { key: 'businessEmail', value: 'booking@camouflage.com' },
-            { key: 'businessPhone', value: '+1234567890' },
-            { key: 'businessAddress', value: '123 Beauty Street, City, State 12345' },
-            { key: 'workingHours', value: '{"start": "09:00", "end": "18:00"}' },
-            { key: 'workingDays', value: '["monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]' },
-            { key: 'bookingBuffer', value: '15' },
-            { key: 'maxAdvanceBooking', value: '30' },
-            { key: 'autoConfirm', value: 'false' },
-            { key: 'smsNotifications', value: 'true' },
-            { key: 'emailNotifications', value: 'true' },
-            { key: 'twilioAccountSid', value: process.env.TWILIO_ACCOUNT_SID || '' },
-            { key: 'twilioAuthToken', value: process.env.TWILIO_AUTH_TOKEN || '' },
-            { key: 'twilioPhoneNumber', value: process.env.TWILIO_PHONE_NUMBER || '' }
-          ]);
+        } catch (dbError) {
+          console.error('SQLite initialization failed, using fallback:', dbError.message);
           
-          console.log('✅ Database seeded successfully');
+          // Set up fallback database
+          const fallbackDB = require('../config/fallback-db');
+          app.set('fallbackDB', fallbackDB);
+          app.set('useFallback', true);
+          
+          console.log('✅ Fallback database initialized');
         }
         
         dbInitialized = true;
-        console.log('✅ Database initialized');
         
       } catch (error) {
         console.error('❌ Database initialization failed:', error);
@@ -158,10 +177,34 @@ app.use(async (req, res, next) => {
     if (!routesAdded) {
       try {
         // Add routes after successful DB connection
-        app.use('/api/auth', require('../routes/auth'));
-        app.use('/api/bookings', require('../routes/bookings'));  
-        app.use('/api/services', require('../routes/services'));
-        app.use('/api/admin', require('../routes/admin'));
+        const useFallback = app.get('useFallback');
+        
+        if (useFallback) {
+          // Use fallback routes when SQLite is not available
+          console.log('🔄 Using fallback routes...');
+          app.use('/api/services', require('./fallback-services'));
+          
+          // Simple fallback auth route
+          app.use('/api/auth', (req, res) => {
+            res.json({ success: false, message: 'Authentication temporarily unavailable' });
+          });
+          
+          // Simple fallback for other routes
+          app.use('/api/bookings', (req, res) => {
+            res.json({ success: false, message: 'Booking temporarily unavailable' });
+          });
+          
+          app.use('/api/admin', (req, res) => {
+            res.json({ success: false, message: 'Admin panel temporarily unavailable' });
+          });
+          
+        } else {
+          // Use full routes when SQLite is working
+          app.use('/api/auth', require('../routes/auth'));
+          app.use('/api/bookings', require('../routes/bookings'));  
+          app.use('/api/services', require('../routes/services'));
+          app.use('/api/admin', require('../routes/admin'));
+        }
         
         // Mock socket.io for serverless
         app.set('io', { 
