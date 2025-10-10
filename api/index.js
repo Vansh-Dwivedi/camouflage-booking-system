@@ -19,7 +19,26 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
-    message: 'Camouflage Booking System API'
+    message: 'Camouflage Booking System API',
+    env: {
+      NODE_ENV: process.env.NODE_ENV,
+      VERCEL: process.env.VERCEL,
+      JWT_SECRET: process.env.JWT_SECRET ? 'SET' : 'NOT_SET'
+    }
+  });
+});
+
+// Debug endpoint
+app.get('/api/debug', (req, res) => {
+  res.json({
+    status: 'debug',
+    timestamp: new Date().toISOString(),
+    dbInitialized: dbInitialized,
+    routesAdded: routesAdded,
+    environment: process.env.NODE_ENV,
+    vercel: !!process.env.VERCEL,
+    path: req.path,
+    method: req.method
   });
 });
 
@@ -42,42 +61,61 @@ app.get('/login', (req, res) => {
 
 // Initialize database and routes only after successful connection
 let dbInitialized = false;
+let routesAdded = false;
 
 app.use(async (req, res, next) => {
-  if (!dbInitialized && req.path.startsWith('/api/') && req.path !== '/api/health') {
-    try {
-      console.log('🔄 Initializing database...');
-      
-      const { sequelize, testConnection } = require('../config/database');
-      await testConnection();
-      await sequelize.sync({ force: false });
-      
-      console.log('✅ Database initialized');
-      
-      // Add routes after successful DB connection
-      app.use('/api/auth', require('../routes/auth'));
-      app.use('/api/bookings', require('../routes/bookings'));  
-      app.use('/api/services', require('../routes/services'));
-      app.use('/api/admin', require('../routes/admin'));
-      
-      // Mock socket.io for serverless
-      app.set('io', { 
-        emit: () => {}, 
-        to: () => ({ emit: () => {} }) 
-      });
-      
-      dbInitialized = true;
-      console.log('✅ Routes initialized');
-      
-    } catch (error) {
-      console.error('❌ Database initialization failed:', error);
-      return res.status(500).json({ 
-        success: false, 
-        message: 'Database initialization failed',
-        error: error.message
-      });
+  // Only initialize for API routes (not static files or health check)
+  if (req.path.startsWith('/api/') && req.path !== '/api/health') {
+    
+    if (!dbInitialized) {
+      try {
+        console.log('🔄 Initializing database for:', req.path);
+        
+        const { sequelize, testConnection } = require('../config/database');
+        await testConnection();
+        await sequelize.sync({ force: false });
+        
+        dbInitialized = true;
+        console.log('✅ Database initialized');
+        
+      } catch (error) {
+        console.error('❌ Database initialization failed:', error);
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Database initialization failed',
+          error: error.message
+        });
+      }
+    }
+    
+    if (!routesAdded) {
+      try {
+        // Add routes after successful DB connection
+        app.use('/api/auth', require('../routes/auth'));
+        app.use('/api/bookings', require('../routes/bookings'));  
+        app.use('/api/services', require('../routes/services'));
+        app.use('/api/admin', require('../routes/admin'));
+        
+        // Mock socket.io for serverless
+        app.set('io', { 
+          emit: () => {}, 
+          to: () => ({ emit: () => {} }) 
+        });
+        
+        routesAdded = true;
+        console.log('✅ Routes initialized');
+        
+      } catch (error) {
+        console.error('❌ Route initialization failed:', error);
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Route initialization failed',
+          error: error.message
+        });
+      }
     }
   }
+  
   next();
 });
 
