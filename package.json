@@ -8,9 +8,8 @@
     "dev": "nodemon server.js",
     "build": "node scripts/seedData.js",
     "seed": "node scripts/seedData.js",
-    "vercel-build": "npm run seed",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "npm rebuild better-sqlite3"
+    "vercel-build": "echo 'Using JSON storage'",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -26,7 +25,6 @@
   "license": "MIT",
   "dependencies": {
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^12.4.1",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
@@ -36,9 +34,7 @@
     "jsonwebtoken": "^9.0.0",
     "moment": "^2.29.4",
     "multer": "^1.4.5-lts.1",
-    "sequelize": "^6.37.7",
     "socket.io": "^4.6.1",
-    "sqlite3": "^5.1.7",
     "twilio": "^5.10.2"
   },
   "devDependencies": {
