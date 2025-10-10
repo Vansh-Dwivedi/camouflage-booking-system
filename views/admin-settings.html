@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Settings - Camouflage Studio</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <link href="/css/admin.css" rel="stylesheet">
+</head>
+<body>
+    <div class="admin-container">
+        <aside class="admin-sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-palette"></i>
+                    <span>Admin Panel</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/admin" class="nav-item" data-section="dashboard">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/admin/bookings" class="nav-item" data-section="bookings">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Bookings</span>
+                </a>
+                <a href="/admin/services" class="nav-item" data-section="services">
+                    <i class="fas fa-concierge-bell"></i>
+                    <span>Services</span>
+                </a>
+                <a href="/admin/customers" class="nav-item" data-section="customers">
+                    <i class="fas fa-users"></i>
+                    <span>Customers</span>
+                </a>
+                <a href="/admin/analytics" class="nav-item" data-section="analytics">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="/admin/settings" class="nav-item active" data-section="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <i class="fas fa-user-shield"></i>
+                    <span id="adminName">Admin</span>
+                </div>
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </button>
+            </div>
+        </aside>
+
+        <main class="admin-main">
+            <header class="admin-header">
+                <div class="header-left">
+                    <button class="sidebar-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 id="pageTitle">Settings</h1>
+                </div>
+            </header>
+
+            <section class="admin-section active" id="settings">
+                <div class="section-header">
+                    <h2>System Settings</h2>
+                </div>
+
+                <div class="settings-content">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Business Information</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="businessSettingsForm">
+                                <div class="form-group">
+                                    <label for="businessName">Business Name</label>
+                                    <input type="text" id="businessName" value="Camouflage Studio">
+                                </div>
+                                <div class="form-group">
+                                    <label for="businessEmail">Contact Email</label>
+                                    <input type="email" id="businessEmail" value="info@camouflagestudio.com">
+                                </div>
+                                <div class="form-group">
+                                    <label for="businessPhone">Phone Number</label>
+                                    <input type="tel" id="businessPhone" value="(555) 123-4567">
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Booking Settings</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="bookingSettingsForm">
+                                <div class="form-group">
+                                    <label for="maxAdvanceBooking">Maximum Advance Booking (days)</label>
+                                    <input type="number" id="maxAdvanceBooking" value="30" min="1" max="365">
+                                </div>
+                                <div class="form-group">
+                                    <label for="minAdvanceBooking">Minimum Advance Booking (hours)</label>
+                                    <input type="number" id="minAdvanceBooking" value="2" min="0" max="48">
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Notification (Twilio) Settings</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="notificationSettingsForm">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label><input type="checkbox" id="notifyEnabled" checked> Enable SMS Notifications</label>
+                                    </div>
+                                    <div class="form-group">
+                                        <label><input type="checkbox" id="whatsappEnabled"> Enable WhatsApp</label>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="fromSms">From SMS Number</label>
+                                        <input type="text" id="fromSms">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="ownerPhoneSms">Owner SMS Phone</label>
+                                        <input type="text" id="ownerPhoneSms">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="fromWhatsapp">From WhatsApp</label>
+                                        <input type="text" id="fromWhatsapp" placeholder="whatsapp:+14155238886">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="ownerPhoneWhatsapp">Owner WhatsApp</label>
+                                        <input type="text" id="ownerPhoneWhatsapp" placeholder="whatsapp:+1xxxxxxxx">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="defaultCountryCode">Default Country Code</label>
+                                        <input type="text" id="defaultCountryCode" value="+1">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="reminderHours">Reminder Hours Before</label>
+                                        <input type="number" id="reminderHours" min="1" max="72" value="24">
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save Notification Settings</button>
+                                <p class="form-note small">Account SID / Auth Token are environment managed and not editable here.</p>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="modal" id="errorModal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Error</h3><button onclick="App.closeModal('errorModal')">&times;</button></div>
+            <div class="modal-body"><p id="errorMessage"></p></div>
+        </div>
+    </div>
+    <div class="modal" id="successModal">
+        <div class="modal-content">
+            <div class="modal-header"><h3>Success</h3><button onclick="App.closeModal('successModal')">&times;</button></div>
+            <div class="modal-body"><p id="successMessage"></p></div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.js"></script>
+    <script src="/js/app.js"></script>
+    <script src="/js/admin.js"></script>
+</body>
+</html>

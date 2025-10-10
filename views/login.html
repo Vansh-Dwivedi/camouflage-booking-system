@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Camouflage Studio</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <link href="/css/auth.css" rel="stylesheet">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-form-container">
+            <div class="auth-header">
+                <div class="logo">
+                    <i class="fas fa-palette"></i>
+                    <span>Camouflage Studio</span>
+                </div>
+                <h2>Welcome Back</h2>
+                <p>Sign in to your account</p>
+            </div>
+
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" autocomplete="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" autocomplete="current-password" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+            </form>
+
+            <div class="auth-links">
+                <p>Don't have an account? <a href="#" onclick="switchToRegister()">Sign up</a></p>
+                <p><a href="/">← Back to Home</a></p>
+            </div>
+
+            <div class="demo-accounts">
+                <h4>Demo Accounts</h4>
+                <div class="demo-buttons">
+                    <button class="btn btn-outline btn-small" onclick="loginAsAdmin()">
+                        <i class="fas fa-user-shield"></i>
+                        Login as Admin
+                    </button>
+                    <button class="btn btn-outline btn-small" onclick="loginAsCustomer()">
+                        <i class="fas fa-user"></i>
+                        Login as Customer
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="auth-form-container" id="registerContainer" style="display: none;">
+            <div class="auth-header">
+                <div class="logo">
+                    <i class="fas fa-palette"></i>
+                    <span>Camouflage Studio</span>
+                </div>
+                <h2>Create Account</h2>
+                <p>Join us today</p>
+            </div>
+
+            <form id="registerForm" class="auth-form">
+                <div class="form-group">
+                    <label for="registerName">Full Name</label>
+                    <input type="text" id="registerName" name="name" autocomplete="name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="registerEmail">Email Address</label>
+                    <input type="email" id="registerEmail" name="email" autocomplete="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="registerPhone">Phone Number</label>
+                    <input type="tel" id="registerPhone" name="phone" autocomplete="tel">
+                </div>
+
+                <div class="form-group">
+                    <label for="registerPassword">Password</label>
+                    <input type="password" id="registerPassword" name="password" autocomplete="new-password" required>
+                    <small>Must be at least 6 characters with uppercase, lowercase, and number</small>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+            </form>
+
+            <div class="auth-links">
+                <p>Already have an account? <a href="#" onclick="switchToLogin()">Sign in</a></p>
+                <p><a href="/">← Back to Home</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div class="modal" id="loadingModal">
+        <div class="modal-content">
+            <div class="loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Please wait...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div class="modal" id="errorModal">
+        <div class="modal-content">
+            <div class="error-content">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Error</h3>
+                <p id="errorMessage">Something went wrong. Please try again.</p>
+                <button class="btn btn-primary" onclick="closeModal('errorModal')">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal" id="successModal">
+        <div class="modal-content">
+            <div class="success-content">
+                <i class="fas fa-check-circle"></i>
+                <h3>Success</h3>
+                <p id="successMessage">Operation completed successfully.</p>
+                <button class="btn btn-primary" onclick="closeModal('successModal')">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Test if JavaScript is working
+        console.log('JavaScript is working on login page');
+        
+        // Simple test function
+        function testLogin() {
+            alert('Test function works!');
+        }
+    </script>
+    <script src="/js/app.js"></script>
+    <script src="/js/auth.js"></script>
+</body>
+</html>

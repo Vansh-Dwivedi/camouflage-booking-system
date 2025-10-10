@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Camouflage Studio</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <link href="/css/admin.css" rel="stylesheet">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-palette"></i>
+                    <span>Admin Panel</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="/admin" class="nav-item active" data-section="dashboard">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/admin/bookings" class="nav-item" data-section="bookings">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Bookings</span>
+                </a>
+                <a href="/admin/services" class="nav-item" data-section="services">
+                    <i class="fas fa-concierge-bell"></i>
+                    <span>Services</span>
+                </a>
+                <a href="/admin/customers" class="nav-item" data-section="customers">
+                    <i class="fas fa-users"></i>
+                    <span>Customers</span>
+                </a>
+                <a href="/admin/analytics" class="nav-item" data-section="analytics">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="/admin/settings" class="nav-item" data-section="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <i class="fas fa-user-shield"></i>
+                    <span id="adminName">Admin</span>
+                </div>
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="admin-main">
+            <!-- Header -->
+            <header class="admin-header">
+                <div class="header-left">
+                    <button class="sidebar-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 id="pageTitle">Dashboard</h1>
+                </div>
+                <div class="header-right">
+                    <div class="header-actions">
+                        <button class="btn btn-primary" onclick="window.open('/', '_blank')">
+                            <i class="fas fa-external-link-alt"></i>
+                            View Site
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Section -->
+            <section class="admin-section active" id="dashboard">
+                <div class="dashboard-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="totalBookings">0</h3>
+                            <p>Total Bookings</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-concierge-bell"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="totalServices">0</h3>
+                            <p>Active Services</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="totalCustomers">0</h3>
+                            <p>Customers</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="totalRevenue">$0</h3>
+                            <p>Total Revenue</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-content">
+                    <div class="dashboard-left">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Recent Bookings</h3>
+                                <a href="#bookings" class="view-all">View All</a>
+                            </div>
+                            <div class="card-body">
+                                <div class="bookings-list" id="recentBookings">
+                                    <div class="loading">Loading...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-right">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Upcoming Appointments</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="appointments-list" id="upcomingAppointments">
+                                    <div class="loading">Loading...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bookings Section -->
+            <section class="admin-section" id="bookings">
+                <div class="section-header">
+                    <h2>Manage Bookings</h2>
+                    <div class="section-actions">
+                        <select id="bookingStatusFilter">
+                            <option value="all">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                        <button class="btn btn-outline" onclick="exportBookings()">
+                            <i class="fas fa-download"></i>
+                            Export
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="data-table" id="bookingsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>Customer</th>
+                                        <th>Service</th>
+                                        <th>Status</th>
+                                        <th>Price</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bookingsTableBody">
+                                    <tr>
+                                        <td colspan="6" class="loading">Loading bookings...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="pagination" id="bookingsPagination"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Services Section -->
+            <section class="admin-section" id="services">
+                <div class="section-header">
+                    <h2>Manage Services</h2>
+                    <div class="section-actions">
+                        <button class="btn btn-primary" onclick="openServiceModal()">
+                            <i class="fas fa-plus"></i>
+                            Add Service
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="services-grid" id="servicesGrid">
+                            <div class="loading">Loading services...</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Customers Section -->
+            <section class="admin-section" id="customers">
+                <div class="section-header">
+                    <h2>Customer Management</h2>
+                    <div class="section-actions">
+                        <input type="text" id="customerSearch" placeholder="Search customers...">
+                        <select id="customerRoleFilter">
+                            <option value="all">All Roles</option>
+                            <option value="customer">Customers</option>
+                            <option value="staff">Staff</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="data-table" id="customersTable">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Phone</th>
+                                        <th>Role</th>
+                                        <th>Status</th>
+                                        <th>Joined</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="customersTableBody">
+                                    <tr>
+                                        <td colspan="7" class="loading">Loading customers...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="pagination" id="customersPagination"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Analytics Section -->
+            <section class="admin-section" id="analytics">
+                <div class="section-header">
+                    <h2>Analytics & Reports</h2>
+                    <div class="section-actions">
+                        <select id="analyticsperiod">
+                            <option value="7">Last 7 days</option>
+                            <option value="30" selected>Last 30 days</option>
+                            <option value="90">Last 3 months</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="analytics-content">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Revenue by Service Category</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" id="categoryRevenueChart">
+                                <div class="loading">Loading chart...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Booking Trends by Hour</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" id="hourlyTrendsChart">
+                                <div class="loading">Loading chart...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section class="admin-section" id="settings">
+                <div class="section-header">
+                    <h2>System Settings</h2>
+                </div>
+
+                <div class="settings-content">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Business Information</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="businessSettingsForm">
+                                <div class="form-group">
+                                    <label for="businessName">Business Name</label>
+                                    <input type="text" id="businessName" value="Camouflage Studio">
+                                </div>
+                                <div class="form-group">
+                                    <label for="businessEmail">Contact Email</label>
+                                    <input type="email" id="businessEmail" value="info@camouflagestudio.com">
+                                </div>
+                                <div class="form-group">
+                                    <label for="businessPhone">Phone Number</label>
+                                    <input type="tel" id="businessPhone" value="(555) 123-4567">
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Booking Settings</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="bookingSettingsForm">
+                                <div class="form-group">
+                                    <label for="maxAdvanceBooking">Maximum Advance Booking (days)</label>
+                                    <input type="number" id="maxAdvanceBooking" value="30" min="1" max="365">
+                                </div>
+                                <div class="form-group">
+                                    <label for="minAdvanceBooking">Minimum Advance Booking (hours)</label>
+                                    <input type="number" id="minAdvanceBooking" value="2" min="0" max="48">
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Notification (Twilio) Settings</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="notificationSettingsForm">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label><input type="checkbox" id="notifyEnabled" checked> Enable SMS Notifications</label>
+                                    </div>
+                                    <div class="form-group">
+                                        <label><input type="checkbox" id="whatsappEnabled"> Enable WhatsApp</label>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="fromSms">From SMS Number</label>
+                                        <input type="text" id="fromSms">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="ownerPhoneSms">Owner SMS Phone</label>
+                                        <input type="text" id="ownerPhoneSms">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="fromWhatsapp">From WhatsApp</label>
+                                        <input type="text" id="fromWhatsapp" placeholder="whatsapp:+14155238886">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="ownerPhoneWhatsapp">Owner WhatsApp</label>
+                                        <input type="text" id="ownerPhoneWhatsapp" placeholder="whatsapp:+1xxxxxxxx">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="defaultCountryCode">Default Country Code</label>
+                                        <input type="text" id="defaultCountryCode" value="+1">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="reminderHours">Reminder Hours Before</label>
+                                        <input type="number" id="reminderHours" min="1" max="72" value="24">
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Save Notification Settings</button>
+                                <p class="form-note small">Account SID / Auth Token are environment managed and not editable here.</p>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Service Modal -->
+    <div class="modal" id="serviceModal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3 id="serviceModalTitle">Add New Service</h3>
+                <button class="modal-close" onclick="closeServiceModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="serviceForm">
+                    <input type="hidden" id="serviceId">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="serviceName">Service Name *</label>
+                            <input type="text" id="serviceName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="serviceCategory">Category *</label>
+                            <select id="serviceCategory" required>
+                                <option value="">Select Category</option>
+                                <option value="makeup">Makeup</option>
+                                <option value="skincare">Skincare</option>
+                                <option value="eyebrows">Eyebrows</option>
+                                <option value="lashes">Lashes</option>
+                                <option value="hair">Hair</option>
+                                <option value="nails">Nails</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="serviceDescription">Description *</label>
+                        <textarea id="serviceDescription" rows="3" required></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="serviceDuration">Duration (minutes) *</label>
+                            <input type="number" id="serviceDuration" min="15" max="480" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="servicePrice">Price ($) *</label>
+                            <input type="number" id="servicePrice" min="0" step="0.01" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="preparationTime">Preparation Time (minutes)</label>
+                            <input type="number" id="preparationTime" min="0" max="60" value="10">
+                        </div>
+                        <div class="form-group">
+                            <label for="cleanupTime">Cleanup Time (minutes)</label>
+                            <input type="number" id="cleanupTime" min="0" max="60" value="10">
+                        </div>
+                    </div>
+
+                    <div class="availability-settings">
+                        <h4>Availability Schedule</h4>
+                        <div class="days-grid">
+                            <div class="day-setting">
+                                <label>
+                                    <input type="checkbox" name="monday" checked>
+                                    Monday
+                                </label>
+                                <div class="time-inputs">
+                                    <input type="time" name="mondayStart" value="09:00">
+                                    <span>to</span>
+                                    <input type="time" name="mondayEnd" value="17:00">
+                                </div>
+                            </div>
+                            <!-- Similar for other days -->
+                            <div class="day-setting">
+                                <label>
+                                    <input type="checkbox" name="tuesday" checked>
+                                    Tuesday
+                                </label>
+                                <div class="time-inputs">
+                                    <input type="time" name="tuesdayStart" value="09:00">
+                                    <span>to</span>
+                                    <input type="time" name="tuesdayEnd" value="17:00">
+                                </div>
+                            </div>
+                            <div class="day-setting">
+                                <label>
+                                    <input type="checkbox" name="wednesday" checked>
+                                    Wednesday
+                                </label>
+                                <div class="time-inputs">
+                                    <input type="time" name="wednesdayStart" value="09:00">
+                                    <span>to</span>
+                                    <input type="time" name="wednesdayEnd" value="17:00">
+                                </div>
+                            </div>
+                            <div class="day-setting">
+                                <label>
+                                    <input type="checkbox" name="thursday" checked>
+                                    Thursday
+                                </label>
+                                <div class="time-inputs">
+                                    <input type="time" name="thursdayStart" value="09:00">
+                                    <span>to</span>
+                                    <input type="time" name="thursdayEnd" value="17:00">
+                                </div>
+                            </div>
+                            <div class="day-setting">
+                                <label>
+                                    <input type="checkbox" name="friday" checked>
+                                    Friday
+                                </label>
+                                <div class="time-inputs">
+                                    <input type="time" name="fridayStart" value="09:00">
+                                    <span>to</span>
+                                    <input type="time" name="fridayEnd" value="17:00">
+                                </div>
+                            </div>
+                            <div class="day-setting">
+                                <label>
+                                    <input type="checkbox" name="saturday" checked>
+                                    Saturday
+                                </label>
+                                <div class="time-inputs">
+                                    <input type="time" name="saturdayStart" value="09:00">
+                                    <span>to</span>
+                                    <input type="time" name="saturdayEnd" value="17:00">
+                                </div>
+                            </div>
+                            <div class="day-setting">
+                                <label>
+                                    <input type="checkbox" name="sunday">
+                                    Sunday
+                                </label>
+                                <div class="time-inputs">
+                                    <input type="time" name="sundayStart" value="09:00">
+                                    <span>to</span>
+                                    <input type="time" name="sundayEnd" value="17:00">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-outline" onclick="closeServiceModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Service</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div class="modal" id="loadingModal">
+        <div class="modal-content">
+            <div class="loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.js"></script>
+    <script src="/js/app.js"></script>
+    <script src="/js/admin.js"></script>
+</body>
+</html>

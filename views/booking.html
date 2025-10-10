@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Appointment - Camouflage Studio</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+    <link href="/css/booking.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <i class="fas fa-palette"></i>
+                <span>Camouflage Studio</span>
+            </div>
+            <div class="nav-menu">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/booking" class="nav-link active">Book Now</a>
+                <a href="/dashboard" class="nav-link" id="dashboardLink" style="display: none;">Dashboard</a>
+                <a href="/login" class="nav-link" id="loginLink">Login</a>
+                <a href="/admin" class="nav-link admin-btn">Admin</a>
+                <span class="nav-link user-info" id="userInfo" style="display: none;">
+                    <i class="fas fa-user"></i>
+                    <span id="userName"></span>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="booking-container">
+        <!-- Progress Bar -->
+        <div class="progress-bar">
+            <div class="step active" data-step="1">
+                <span class="step-number">1</span>
+                <span class="step-label">Select Service</span>
+            </div>
+            <div class="step" data-step="2">
+                <span class="step-number">2</span>
+                <span class="step-label">Choose Date & Time</span>
+            </div>
+            <div class="step" data-step="3">
+                <span class="step-number">3</span>
+                <span class="step-label">Your Details</span>
+            </div>
+            <div class="step" data-step="4">
+                <span class="step-number">4</span>
+                <span class="step-label">Confirmation</span>
+            </div>
+        </div>
+
+        <!-- Step 1: Service Selection -->
+        <div class="booking-step active" id="step1">
+            <div class="step-header">
+                <h2>Select a Service</h2>
+                <p>Choose the makeup service you'd like to book</p>
+            </div>
+
+            <div class="service-filters">
+                <div class="filter-group">
+                    <label for="categoryFilter">Category:</label>
+                    <select id="categoryFilter">
+                        <option value="all">All Categories</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="searchService">Search:</label>
+                    <input type="text" id="searchService" placeholder="Search services...">
+                </div>
+            </div>
+
+            <div class="services-container" id="servicesList">
+                <div class="loading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Loading services...</p>
+                </div>
+            </div>
+
+            <div class="step-navigation">
+                <button class="btn btn-primary" id="step1Next" disabled>Continue</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Date & Time Selection -->
+        <div class="booking-step" id="step2">
+            <div class="step-header">
+                <h2>Choose Date & Time</h2>
+                <p>Select your preferred appointment date and time</p>
+            </div>
+
+            <div class="selected-service-info" id="selectedServiceInfo">
+                <!-- Service info will be displayed here -->
+            </div>
+
+            <div class="datetime-selection">
+                <div class="date-selection">
+                    <h3>Select Date</h3>
+                    <div class="calendar-container">
+                        <div class="calendar-header">
+                            <button class="calendar-nav" id="prevMonth">&lt;</button>
+                            <h4 id="currentMonth"></h4>
+                            <button class="calendar-nav" id="nextMonth">&gt;</button>
+                        </div>
+                        <div class="calendar-grid" id="calendarGrid">
+                            <!-- Calendar will be generated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="time-selection">
+                    <h3>Available Time Slots</h3>
+                    <div class="time-slots" id="timeSlots">
+                        <p class="no-date-selected">Please select a date first</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step-navigation">
+                <button class="btn btn-outline" onclick="previousStep()">Back</button>
+                <button class="btn btn-primary" id="step2Next" disabled>Continue</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Customer Details -->
+        <div class="booking-step" id="step3">
+            <div class="step-header">
+                <h2>Your Details</h2>
+                <p>Please provide your contact information</p>
+            </div>
+
+            <form id="customerForm" class="customer-form">
+                <div class="form-group">
+                    <label for="customerName">Full Name *</label>
+                    <input type="text" id="customerName" name="name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="customerEmail">Email Address *</label>
+                    <input type="email" id="customerEmail" name="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="customerPhone">Phone Number *</label>
+                    <input type="tel" id="customerPhone" name="phone" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="customerNotes">Special Requests or Notes</label>
+                    <textarea id="customerNotes" name="notes" rows="4" placeholder="Any special requests, allergies, or additional information..."></textarea>
+                </div>
+
+                <div class="booking-summary">
+                    <h3>Booking Summary</h3>
+                    <div class="summary-item">
+                        <span>Service:</span>
+                        <span id="summaryService">-</span>
+                    </div>
+                    <div class="summary-item">
+                        <span>Date:</span>
+                        <span id="summaryDate">-</span>
+                    </div>
+                    <div class="summary-item">
+                        <span>Time:</span>
+                        <span id="summaryTime">-</span>
+                    </div>
+                    <div class="summary-item">
+                        <span>Duration:</span>
+                        <span id="summaryDuration">-</span>
+                    </div>
+                    <div class="summary-item total">
+                        <span>Total Price:</span>
+                        <span id="summaryPrice">-</span>
+                    </div>
+                </div>
+            </form>
+
+            <div class="step-navigation">
+                <button class="btn btn-outline" onclick="previousStep()">Back</button>
+                <button class="btn btn-primary" id="step3Next">Book Appointment</button>
+            </div>
+        </div>
+
+        <!-- Step 4: Confirmation -->
+        <div class="booking-step" id="step4">
+            <div class="confirmation-content">
+                <div class="success-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h2>Booking Confirmed!</h2>
+                <p>Your appointment has been successfully booked.</p>
+
+                <div class="confirmation-details" id="confirmationDetails">
+                    <!-- Booking details will be displayed here -->
+                </div>
+
+                <div class="confirmation-actions">
+                    <button class="btn btn-primary" onclick="window.location.href='/'">Return Home</button>
+                    <button class="btn btn-outline" onclick="window.location.href='/booking'">Book Another</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div class="modal" id="loadingModal">
+        <div class="modal-content">
+            <div class="loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Processing your booking...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div class="modal" id="errorModal">
+        <div class="modal-content">
+            <div class="error-content">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h3>Booking Error</h3>
+                <p id="errorMessage">Something went wrong. Please try again.</p>
+                <button class="btn btn-primary" onclick="closeModal('errorModal')">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.js"></script>
+    <script src="/js/app.js"></script>
+    <script src="/js/booking.js"></script>
+</body>
+</html>
