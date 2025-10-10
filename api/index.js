@@ -65,7 +65,7 @@ let routesAdded = false;
 
 app.use(async (req, res, next) => {
   // Only initialize for API routes (not static files or health check)
-  if (req.path.startsWith('/api/') && req.path !== '/api/health') {
+  if (req.path.startsWith('/api/') && req.path !== '/api/health' && req.path !== '/api/debug') {
     
     if (!dbInitialized) {
       try {
@@ -73,7 +73,74 @@ app.use(async (req, res, next) => {
         
         const { sequelize, testConnection } = require('../config/database');
         await testConnection();
-        await sequelize.sync({ force: false });
+        await sequelize.sync({ force: true }); // Force sync for in-memory database
+        
+        // If using Vercel (in-memory database), seed with initial data
+        if (process.env.VERCEL === '1') {
+          console.log('🌱 Seeding database for serverless environment...');
+          
+          // Import models
+          const { User, Service, Setting } = require('../models');
+          
+          // Create admin user
+          const bcrypt = require('bcryptjs');
+          const adminPassword = await bcrypt.hash('admin123', 10);
+          await User.create({
+            email: 'admin@camouflage.com',
+            password: adminPassword,
+            name: 'Admin User',
+            phone: '+1234567890',
+            role: 'admin'
+          });
+          
+          // Create sample services
+          await Service.bulkCreate([
+            {
+              name: 'Bridal Makeup',
+              description: 'Complete bridal makeup package with trial session',
+              duration: 180,
+              price: 250.00,
+              category: 'bridal',
+              isActive: true
+            },
+            {
+              name: 'Party Makeup',
+              description: 'Glamorous makeup for special occasions',
+              duration: 90,
+              price: 80.00,
+              category: 'party',
+              isActive: true
+            },
+            {
+              name: 'Natural Look',
+              description: 'Subtle, everyday makeup look',
+              duration: 60,
+              price: 50.00,
+              category: 'natural',
+              isActive: true
+            }
+          ]);
+          
+          // Create settings
+          await Setting.bulkCreate([
+            { key: 'businessName', value: 'Camouflage Beauty Studio' },
+            { key: 'businessEmail', value: 'booking@camouflage.com' },
+            { key: 'businessPhone', value: '+1234567890' },
+            { key: 'businessAddress', value: '123 Beauty Street, City, State 12345' },
+            { key: 'workingHours', value: '{"start": "09:00", "end": "18:00"}' },
+            { key: 'workingDays', value: '["monday", "tuesday", "wednesday", "thursday", "friday", "saturday"]' },
+            { key: 'bookingBuffer', value: '15' },
+            { key: 'maxAdvanceBooking', value: '30' },
+            { key: 'autoConfirm', value: 'false' },
+            { key: 'smsNotifications', value: 'true' },
+            { key: 'emailNotifications', value: 'true' },
+            { key: 'twilioAccountSid', value: process.env.TWILIO_ACCOUNT_SID || '' },
+            { key: 'twilioAuthToken', value: process.env.TWILIO_AUTH_TOKEN || '' },
+            { key: 'twilioPhoneNumber', value: process.env.TWILIO_PHONE_NUMBER || '' }
+          ]);
+          
+          console.log('✅ Database seeded successfully');
+        }
         
         dbInitialized = true;
         console.log('✅ Database initialized');

@@ -650,7 +650,7 @@ function showBookingConfirmation(booking) {
 }
 
 // Socket.IO real-time updates
-if (typeof io !== 'undefined') {
+if (typeof io !== 'undefined' && !window.location.hostname.includes('vercel.app')) {
     socket = io();
     
     socket.on('booking-created', (data) => {

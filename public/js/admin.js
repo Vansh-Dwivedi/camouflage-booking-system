@@ -861,7 +861,7 @@ function renderPopularServices(servicesData) {
 
 // Real-time updates
 function initializeRealTimeUpdates() {
-    if (typeof io !== 'undefined') {
+    if (typeof io !== 'undefined' && !window.location.hostname.includes('vercel.app')) {
         const socket = io();
         
         socket.on('booking-created', (data) => {
