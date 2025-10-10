@@ -48,6 +48,7 @@ app.use(express.static(path.join(__dirname, 'views')));
 // JSON Database initialization
 const initializeJsonDatabase = async () => {
   try {
+    console.log('🔄 Initializing JSON Database...');
     await initializeDatabase();
     console.log('✅ JSON Database initialized successfully');
     
@@ -55,9 +56,17 @@ const initializeJsonDatabase = async () => {
     app.set('db', db);
     app.set('useJsonDB', true);
     
+    // Test database access
+    const testUser = await db.findUserByEmail('admin@camouflage.com');
+    if (testUser) {
+      console.log('✅ Test user found - database working correctly');
+    } else {
+      console.log('⚠️ Test user not found - database may have issues');
+    }
+    
   } catch (error) {
     console.error('❌ JSON Database initialization error:', error);
-    console.log('⚠️ Continuing server startup despite database initialization error...');
+    throw error; // Don't continue if database fails
   }
 };
 
@@ -78,6 +87,10 @@ io.on('connection', (socket) => {
 // Make io accessible to routes
 app.set('io', io);
 
+// Initialize JSON Database early
+app.set('db', db);
+app.set('useJsonDB', true);
+
 // Import JSON-based routes for local development
 const jsonAuthRoutes = require('./api/json-auth');
 const jsonServiceRoutes = require('./api/json-services');
@@ -85,6 +98,16 @@ const jsonBookingRoutes = require('./api/json-bookings');
 const jsonAdminRoutes = require('./api/json-admin');
 // Lazy load notification queue to ensure module is initialized
 require('./utils/notificationQueue');
+
+// Test API route
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    success: true, 
+    message: 'JSON API is working',
+    database: req.app.get('useJsonDB') ? 'JSON' : 'Other',
+    timestamp: new Date().toISOString()
+  });
+});
 
 // API routes - Using JSON Database
 app.use('/api/auth', jsonAuthRoutes);

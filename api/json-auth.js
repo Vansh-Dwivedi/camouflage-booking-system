@@ -3,9 +3,21 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 
+console.log('🔐 JSON Auth routes loading...');
+
+// Test route
+router.get('/test', (req, res) => {
+  res.json({ 
+    success: true, 
+    message: 'JSON Auth router is working',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Login route
 router.post('/login', async (req, res) => {
   try {
+    console.log('📧 Login attempt for:', req.body.email);
     const { email, password } = req.body;
     
     if (!email || !password) {
@@ -16,6 +28,14 @@ router.post('/login', async (req, res) => {
     }
     
     const db = req.app.get('db');
+    if (!db) {
+      console.error('❌ Database not available in login route');
+      return res.status(500).json({
+        success: false,
+        message: 'Database not available'
+      });
+    }
+    
     const user = await db.findUserByEmail(email);
     
     if (!user) {
