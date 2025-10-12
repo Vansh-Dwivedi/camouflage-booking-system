@@ -11,11 +11,6 @@ let services = [];
 let availableSlots = [];
 let currentMonth = new Date();
 
-// Log booking system info
-console.log('💄 Booking System: Camouflage Beauty Studio');
-console.log('💾 Database: JSON File Storage');
-console.log('⚡ Features: Real-time availability, Multi-step booking wizard');
-
 document.addEventListener('DOMContentLoaded', () => {
     initializeBooking();
 });
@@ -655,7 +650,7 @@ function showBookingConfirmation(booking) {
 }
 
 // Socket.IO real-time updates
-if (typeof io !== 'undefined' && !window.location.hostname.includes('vercel.app')) {
+if (typeof io !== 'undefined') {
     socket = io();
     
     socket.on('booking-created', (data) => {

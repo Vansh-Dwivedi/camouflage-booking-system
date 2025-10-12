@@ -1,25 +1,27 @@
-// JSON Database Configuration
-const jsonDb = require('./jsonDatabase');
+const { Sequelize } = require('sequelize');
+const path = require('path');
 
-// Initialize JSON database
-const initializeDatabase = async () => {
+// Initialize Sequelize with SQLite
+const sequelize = new Sequelize({
+  dialect: 'sqlite',
+  storage: path.join(__dirname, '..', 'database.sqlite'),
+  logging: process.env.NODE_ENV === 'development' ? console.log : false,
+  define: {
+    timestamps: true,
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  }
+});
+
+// Test database connection
+const testConnection = async () => {
   try {
-    await jsonDb.initialize();
-    console.log('✅ JSON database initialized successfully.');
-    return true;
+    await sequelize.authenticate();
+    console.log('✅ SQLite database connection established successfully.');
   } catch (error) {
-    console.error('❌ Unable to initialize JSON database:', error.message);
-    return false;
+    console.error('❌ Unable to connect to SQLite database:', error.message);
+    process.exit(1);
   }
 };
 
-// Test database connection (compatibility function)
-const testConnection = async () => {
-  return await initializeDatabase();
-};
-
-module.exports = { 
-  db: jsonDb,
-  testConnection,
-  initializeDatabase
-};
+module.exports = { sequelize, testConnection };

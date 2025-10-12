@@ -31,12 +31,11 @@ A comprehensive booking system for makeup studios similar to Square's booking sy
 ## Technology Stack
 
 - **Backend**: Node.js, Express.js
-- **Database**: JSON File Storage (Local/Serverless Compatible)
+- **Database**: MongoDB with Mongoose
 - **Authentication**: JWT (JSON Web Tokens)
 - **Real-time Updates**: Socket.IO
 - **Frontend**: HTML5, CSS3, JavaScript (ES6+)
 - **Security**: Helmet, CORS, Rate Limiting
-- **Deployment**: Vercel Serverless Functions
 
 ## Installation
 
@@ -48,14 +47,15 @@ A comprehensive booking system for makeup studios similar to Square's booking sy
 
 3. Create a `.env` file in the root directory with the following variables:
    ```
+   MONGODB_URI=mongodb://localhost:27017/camouflage-booking
    JWT_SECRET=your-super-secret-jwt-key-here
    PORT=3000
-   TWILIO_ACCOUNT_SID=your-twilio-account-sid
-   TWILIO_AUTH_TOKEN=your-twilio-auth-token
-   TWILIO_PHONE_NUMBER=your-twilio-phone-number
    ```
 
-4. The JSON database will be automatically initialized with sample data on first run
+4. Seed the database with sample data:
+   ```bash
+   npm run seed
+   ```
 
 5. Start the development server:
    ```bash

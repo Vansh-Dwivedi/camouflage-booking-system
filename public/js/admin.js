@@ -5,11 +5,6 @@ let users = [];
 let analytics = {};
 let currentView = 'dashboard';
 
-// Log admin system info
-console.log('🔧 Admin Panel: Camouflage Booking System');
-console.log('💾 Database: JSON File Storage');
-console.log('📊 Features: Real-time dashboard, Service management, Booking management');
-
 document.addEventListener('DOMContentLoaded', async () => {
     // Check if user has token
     const token = localStorage.getItem('authToken');
@@ -866,7 +861,7 @@ function renderPopularServices(servicesData) {
 
 // Real-time updates
 function initializeRealTimeUpdates() {
-    if (typeof io !== 'undefined' && !window.location.hostname.includes('vercel.app')) {
+    if (typeof io !== 'undefined') {
         const socket = io();
         
         socket.on('booking-created', (data) => {

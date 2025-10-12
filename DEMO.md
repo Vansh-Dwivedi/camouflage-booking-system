@@ -1,9 +1,7 @@
 # Camouflage Booking System - Demo Guide
 
 ## Overview
-A complete booking system for makeup studios built with Node.js and JSON file storage, similar to Square's booking system. This system allows customers to book services online and provides administrators with a comprehensive management dashboard.
-
-**Database**: JSON File Storage (serverless-friendly, no database server required)
+A complete booking system for makeup studios built with Node.js, similar to Square's booking system. This system allows customers to book services online and provides administrators with a comprehensive management dashboard.
 
 ## Features
 
@@ -25,7 +23,7 @@ A complete booking system for makeup studios built with Node.js and JSON file st
 ## Getting Started
 
 ### Prerequisites
-- Node.js (v20 or higher)
+- Node.js (v14 or higher)
 - Git
 
 ### Installation
@@ -40,12 +38,15 @@ A complete booking system for makeup studios built with Node.js and JSON file st
    npm install
    ```
 
-3. **Start the application** (JSON database auto-initializes):
+3. **Seed the database**:
+   ```bash
+   node scripts/seedData.js
+   ```
+
+5. **Start the application**:
    ```bash
    npm start
    ```
-
-   The JSON database will be automatically created with sample data on first run.
 
 6. **Access the application**:
    - Customer Interface: http://localhost:3000

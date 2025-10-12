@@ -7,7 +7,7 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 const http = require('http');
 const socketIo = require('socket.io');
-const { db, testConnection, initializeDatabase } = require('./config/database');
+const { sequelize, testConnection } = require('./config/database');
 
 const app = express();
 const server = http.createServer(app);
@@ -45,28 +45,27 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'views')));
 
-// JSON Database initialization
-const initializeJsonDatabase = async () => {
+// Database connection and initialization
+const initializeDatabase = async () => {
   try {
-    console.log('🔄 Initializing JSON Database...');
-    await initializeDatabase();
-    console.log('✅ JSON Database initialized successfully');
+    await testConnection();
     
-    // Set up database reference for routes
-    app.set('db', db);
-    app.set('useJsonDB', true);
+    // Import models to ensure associations are set up
+    require('./models');
     
-    // Test database access
-    const testUser = await db.findUserByEmail('admin@camouflage.com');
-    if (testUser) {
-      console.log('✅ Test user found - database working correctly');
-    } else {
-      console.log('⚠️ Test user not found - database may have issues');
+    // Sync database (create tables if they don't exist)
+    // Use force: false and alter: false to avoid hanging
+    // Allow schema alteration when DB_ALTER=true (one-off migrations during development)
+    const alter = process.env.DB_ALTER === 'true';
+    await sequelize.sync({ force: false, alter });
+    if (alter) {
+      console.log('🛠  Database schema altered (DB_ALTER=true). Remember to unset this env var in production.');
     }
-    
+    console.log('✅ Database synchronized successfully');
   } catch (error) {
-    console.error('❌ JSON Database initialization error:', error);
-    throw error; // Don't continue if database fails
+    console.error('❌ Database initialization error:', error);
+    // Don't exit, continue with server start
+    console.log('⚠️ Continuing server startup despite database sync error...');
   }
 };
 
@@ -87,33 +86,19 @@ io.on('connection', (socket) => {
 // Make io accessible to routes
 app.set('io', io);
 
-// Initialize JSON Database early
-app.set('db', db);
-app.set('useJsonDB', true);
-
-// Import JSON-based routes for local development
-const jsonAuthRoutes = require('./api/json-auth');
-const jsonServiceRoutes = require('./api/json-services');
-const jsonBookingRoutes = require('./api/json-bookings');
-const jsonAdminRoutes = require('./api/json-admin');
+// Import routes
+const authRoutes = require('./routes/auth');
+const serviceRoutes = require('./routes/services');
+const bookingRoutes = require('./routes/bookings');
+const adminRoutes = require('./routes/admin');
 // Lazy load notification queue to ensure module is initialized
 require('./utils/notificationQueue');
 
-// Test API route
-app.get('/api/test', (req, res) => {
-  res.json({ 
-    success: true, 
-    message: 'JSON API is working',
-    database: req.app.get('useJsonDB') ? 'JSON' : 'Other',
-    timestamp: new Date().toISOString()
-  });
-});
-
-// API routes - Using JSON Database
-app.use('/api/auth', jsonAuthRoutes);
-app.use('/api/services', jsonServiceRoutes);
-app.use('/api/bookings', jsonBookingRoutes);
-app.use('/api/admin', jsonAdminRoutes);
+// API routes
+app.use('/api/auth', authRoutes);
+app.use('/api/services', serviceRoutes);
+app.use('/api/bookings', bookingRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Serve HTML pages
 app.get('/', (req, res) => {
@@ -176,11 +161,11 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 3000;
 
-// Start server after JSON database initialization
+// Start server after database initialization
 const startServer = async () => {
   try {
-    console.log('🔄 Initializing JSON Database...');
-    await initializeJsonDatabase();
+    console.log('🔄 Initializing database...');
+    await initializeDatabase();
     console.log('🔄 Starting server...');
     
     server.listen(PORT, '0.0.0.0', () => {
@@ -188,8 +173,7 @@ const startServer = async () => {
       console.log(`📱 Admin Panel: http://localhost:${PORT}/admin`);
       console.log(`💄 Booking System: http://localhost:${PORT}/booking`);
       console.log(`🏠 Home Page: http://localhost:${PORT}`);
-      console.log(`💾 Database: JSON File Storage (data/database.json)`);
-      console.log(`🔧 Using: Express.js + JSON Database + Socket.IO`);
+      console.log(`💾 Database: SQLite (database.sqlite)`);
     });
     
     server.on('error', (error) => {
