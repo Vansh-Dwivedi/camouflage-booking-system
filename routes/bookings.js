@@ -159,7 +159,8 @@ router.post('/', optionalAuth, validateBooking, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to create booking',
-      error: error.message
+      error: error.message,
+      details: error.errors || error.stack || null
     });
   }
 });

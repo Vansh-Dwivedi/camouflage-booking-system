@@ -128,8 +128,8 @@ const validateBooking = [
     .trim()
     .notEmpty()
     .withMessage('Phone number is required')
-    .matches(/^[\d\s\-\(\)]+$/)
-    .withMessage('Please provide a valid phone number'),
+    .matches(/^\+\d{10,15}$/)
+    .withMessage('Please provide a valid phone number in international format, e.g. +12345678901'),
   
   body('customerInfo.notes')
     .optional()

@@ -316,6 +316,9 @@ function displayBookings(bookingsToShow) {
                                 <button onclick="cancelBooking('${booking.id}')" class="btn btn-sm btn-danger" title="Cancel">
                                     <i class="fas fa-times"></i>
                                 </button>
+                                <button onclick="deleteBooking('${booking.id}')" class="btn btn-sm btn-danger" title="Delete permanently">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>
                         </td>
                     </tr>
@@ -452,15 +455,6 @@ async function updateBookingStatus(bookingId, newStatus) {
             body: JSON.stringify({ status: newStatus })
         });
 
-// Export helpers
-function exportBookings() {
-    const statusFilter = document.getElementById('bookingStatusFilter') || document.getElementById('statusFilter');
-    const params = new URLSearchParams();
-    if (statusFilter && statusFilter.value && statusFilter.value !== 'all') params.set('status', statusFilter.value);
-    const url = `/api/admin/export/bookings${params.toString() ? ('?' + params.toString()) : ''}`;
-    window.open(url, '_blank');
-}
-        
         // Update local data
         const booking = bookings.find(b => b.id === bookingId);
         if (booking) {
@@ -468,7 +462,7 @@ function exportBookings() {
         }
         
         App.showSuccess('Booking status updated successfully');
-        
+        return true;
     } catch (error) {
         console.error('Error updating booking status:', error);
         App.showError('Failed to update booking status');
@@ -479,6 +473,50 @@ function exportBookings() {
         if (select && originalBooking) {
             select.value = originalBooking.status;
         }
+        return false;
+    }
+}
+
+// Export helpers
+function exportBookings() {
+    const statusFilter = document.getElementById('bookingStatusFilter') || document.getElementById('statusFilter');
+    const params = new URLSearchParams();
+    if (statusFilter && statusFilter.value && statusFilter.value !== 'all') params.set('status', statusFilter.value);
+    const url = `/api/admin/export/bookings${params.toString() ? ('?' + params.toString()) : ''}`;
+    window.open(url, '_blank');
+}
+
+// Delete a single booking (hard delete)
+async function deleteBooking(bookingId) {
+    if (!confirm('Delete this booking permanently? This cannot be undone.')) return;
+    try {
+        await App.apiRequest(`/api/admin/bookings/${bookingId}`, { method: 'DELETE' });
+        // Reload from server so counts/pagination stay accurate
+        await loadBookings();
+        App.showSuccess('Booking deleted');
+    } catch (e) {
+        console.error('Delete booking failed', e);
+        App.showError('Failed to delete booking');
+    }
+}
+
+// Bulk delete bookings (optionally filtered by status)
+async function deleteAllBookings() {
+    const statusFilter = document.getElementById('bookingStatusFilter') || document.getElementById('statusFilter');
+    const status = statusFilter ? statusFilter.value : 'all';
+    const scopeText = status && status !== 'all' ? `all ${status} bookings` : 'ALL bookings';
+    if (!confirm(`Are you sure you want to delete ${scopeText}? This cannot be undone.`)) return;
+    try {
+        const params = new URLSearchParams();
+        params.set('confirm', 'true');
+        if (status && status !== 'all') params.set('status', status);
+        await App.apiRequest(`/api/admin/bookings?${params.toString()}`, { method: 'DELETE' });
+        // Reload list from server to reflect counts accurately
+        await loadBookings();
+        App.showSuccess(`Deleted ${scopeText}`);
+    } catch (e) {
+        console.error('Bulk delete bookings failed', e);
+        App.showError('Failed to bulk delete bookings');
     }
 }
 
@@ -881,6 +919,12 @@ function initializeRealTimeUpdates() {
         socket.on('service-updated', (data) => {
             if (currentView === 'services') {
                 loadServices();
+            }
+        });
+
+        socket.on('booking-deleted', (data) => {
+            if (currentView === 'bookings') {
+                loadBookings();
             }
         });
     }

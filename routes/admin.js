@@ -3,6 +3,7 @@ const { Op, fn, col } = require('sequelize');
 const { Booking, Service, User, Setting } = require('../models');
 const { auth, isAdmin } = require('../middleware/auth');
 const { enqueue } = require('../utils/notificationQueue');
+const { twilioHealthCheck } = require('../utils/twilio');
 
 const router = express.Router();
 
@@ -362,6 +363,53 @@ router.get('/export/bookings', auth, isAdmin, async (req,res)=>{
     const rows = list.map(b=>{ const d=new Date(b.startTime); const date=d.toLocaleDateString(); const time=d.toLocaleTimeString(); const price=(b.pricing?.finalPrice)|| b.service?.price || 0; return `${date},${time},${b.service?.name||''},${b.service?.category||''},${b.status},${price}`; }).join('\n');
     res.setHeader('Content-Type','text/csv'); res.setHeader('Content-Disposition','attachment; filename=bookings.csv'); res.send(header+rows);
   } catch(e){ console.error('Export bookings error',e); res.status(500).json({success:false,message:'Failed to export bookings',error:e.message}); }
+});
+
+// Twilio health check endpoint (admin only)
+router.get('/twilio/health', auth, isAdmin, async (req, res) => {
+  try {
+    const status = await twilioHealthCheck();
+    // Mask FROM number for safety
+    if (status.fromNumber) {
+      const n = String(status.fromNumber);
+      status.fromNumber = n.length > 6 ? `${n.slice(0,3)}***${n.slice(-2)}` : n;
+    }
+    res.json({ success: true, data: status });
+  } catch (e) {
+    res.status(500).json({ success: false, message: 'Twilio health check failed', error: e.message });
+  }
+});
+
+// Delete a single booking (hard delete)
+router.delete('/bookings/:id', auth, isAdmin, async (req, res) => {
+  try {
+    const booking = await Booking.findByPk(req.params.id);
+    if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+    await booking.destroy();
+    const io = req.app.get('io');
+    io.to(`booking-${booking.serviceId}`).emit('booking-deleted', { bookingId: booking.id, serviceId: booking.serviceId });
+    res.json({ success: true, message: 'Booking deleted' });
+  } catch (e) {
+    console.error('Delete booking error', e);
+    res.status(500).json({ success: false, message: 'Failed to delete booking', error: e.message });
+  }
+});
+
+// Bulk delete bookings (optionally by status). Requires confirm=true query.
+router.delete('/bookings', auth, isAdmin, async (req, res) => {
+  try {
+    const { confirm = 'false', status } = req.query;
+    if (String(confirm).toLowerCase() !== 'true') {
+      return res.status(400).json({ success: false, message: 'Confirmation required. Add ?confirm=true to proceed.' });
+    }
+    const where = {};
+    if (status && status !== 'all') where.status = status;
+    const deleted = await Booking.destroy({ where });
+    res.json({ success: true, message: `Deleted ${deleted} booking(s)`, data: { deleted } });
+  } catch (e) {
+    console.error('Bulk delete bookings error', e);
+    res.status(500).json({ success: false, message: 'Failed to bulk delete bookings', error: e.message });
+  }
 });
 
 module.exports = router;

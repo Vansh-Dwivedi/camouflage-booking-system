@@ -209,8 +209,9 @@ function validateEmail(email) {
 }
 
 function validatePhone(phone) {
-    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-    return phoneRegex.test(phone.replace(/\D/g, ''));
+    // Allow numbers with optional leading +; actual E.164 will be formed using country code selector
+    const digits = String(phone || '').replace(/\D/g, '');
+    return digits.length >= 7 && digits.length <= 15;
 }
 
 function validatePassword(password) {

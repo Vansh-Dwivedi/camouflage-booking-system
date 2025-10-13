@@ -144,7 +144,27 @@
 
                 <div class="form-group">
                     <label for="customerPhone">Phone Number *</label>
-                    <input type="tel" id="customerPhone" name="phone" required>
+                    <div class="phone-input">
+                        <select id="customerCountryCode" name="countryCode" aria-label="Country code">
+                            <option value="+1">+1</option>
+                            <option value="+44">+44</option>
+                            <option value="+61">+61</option>
+                            <option value="+91" selected>+91</option>
+                            <option value="+971">+971</option>
+                            <option value="+92">+92</option>
+                            <option value="+880">+880</option>
+                            <option value="+94">+94</option>
+                            <option value="+60">+60</option>
+                            <option value="+65">+65</option>
+                            <option value="+63">+63</option>
+                            <option value="+62">+62</option>
+                            <option value="+81">+81</option>
+                            <option value="+82">+82</option>
+                            <option value="+49">+49</option>
+                            <option value="+33">+33</option>
+                        </select>
+                        <input type="tel" id="customerPhone" name="phone" required placeholder="Phone number">
+                    </div>
                 </div>
 
                 <div class="form-group">

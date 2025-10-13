@@ -1,4 +1,5 @@
-require('dotenv').config();
+// Load environment variables early; allow .env to override system envs in dev
+require('dotenv').config({ override: true });
 
 const express = require('express');
 const cors = require('cors');
@@ -93,6 +94,8 @@ const bookingRoutes = require('./routes/bookings');
 const adminRoutes = require('./routes/admin');
 // Lazy load notification queue to ensure module is initialized
 require('./utils/notificationQueue');
+// Twilio health check
+const { twilioHealthCheck } = require('./utils/twilio');
 
 // API routes
 app.use('/api/auth', authRoutes);
@@ -130,6 +133,7 @@ app.get('/admin/settings', (req, res) => {
 });
 
 app.get('/booking', (req, res) => {
+  // Serve the static file; country code defaults are handled client-side via select default
   res.sendFile(path.join(__dirname, 'views', 'booking.html'));
 });
 
@@ -166,6 +170,17 @@ const startServer = async () => {
   try {
     console.log('🔄 Initializing database...');
     await initializeDatabase();
+    // Twilio startup health check (non-fatal)
+    try {
+      const twilioStatus = await twilioHealthCheck();
+      if (twilioStatus.ok) {
+        console.log(`📨 Twilio ready — ${twilioStatus.message}${twilioStatus.fromConfigured ? '' : ' (FROM number not configured)'}`);
+      } else {
+        console.warn('⚠️ Twilio not ready —', twilioStatus.message);
+      }
+    } catch (e) {
+      console.warn('⚠️ Twilio health check failed:', e.message);
+    }
     console.log('🔄 Starting server...');
     
     server.listen(PORT, '0.0.0.0', () => {

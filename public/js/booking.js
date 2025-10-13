@@ -566,13 +566,18 @@ async function handleBookingSubmission() {
         App.showModal('loadingModal');
         
         // Prepare booking data
+        const ccEl = document.getElementById('customerCountryCode');
+        const rawPhone = String(formData.phone || '').trim();
+        const hasPlus = rawPhone.startsWith('+');
+        const countryCode = ccEl ? ccEl.value : '';
+        const normalizedPhone = hasPlus ? rawPhone : (countryCode + rawPhone.replace(/[^\d]/g,''));
         const bookingRequest = {
             serviceId: bookingData.service.id,
             startTime: new Date(`${bookingData.selectedDate.toDateString()} ${bookingData.selectedTime.start}`).toISOString(),
             customerInfo: {
                 name: formData.name,
                 email: formData.email,
-                phone: formData.phone,
+                phone: normalizedPhone,
                 notes: formData.notes || ''
             }
         };

@@ -370,6 +370,17 @@
     gap: 1.5rem;
 }
 
+    .phone-input { display: flex; gap: 8px; }
+    .phone-input select {
+        width: 90px; /* small fixed width */
+        min-width: 80px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background: #fff;
+    }
+    .phone-input input[type="tel"] { flex: 1; }
+
 .customer-form .form-group {
     margin-bottom: 0;
 }
