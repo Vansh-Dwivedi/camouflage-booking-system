@@ -37,6 +37,41 @@ router.post('/', optionalAuth, validateBooking, async (req, res) => {
       });
     }
     
+    // Ensure we have a customerId: use logged-in user if present, otherwise
+    // find or create a lightweight customer account based on email/phone
+    let resolvedCustomerId = null;
+    if (req.user && req.user.id) {
+      resolvedCustomerId = req.user.id;
+    } else {
+      try {
+        // Try find by email first
+        let customer = null;
+        if (customerInfo?.email) {
+          customer = await User.findOne({ where: { email: customerInfo.email.toLowerCase() } });
+        }
+        // Fallback: try by phone if not found and phone present
+        if (!customer && customerInfo?.phone) {
+          customer = await User.findOne({ where: { phone: customerInfo.phone } });
+        }
+        // Create if still not found
+        if (!customer) {
+          const crypto = require('crypto');
+          const tempPassword = crypto.randomBytes(12).toString('hex');
+          customer = await User.create({
+            name: customerInfo.name || 'Customer',
+            email: (customerInfo.email || `guest_${Date.now()}@example.com`).toLowerCase(),
+            password: tempPassword,
+            phone: customerInfo.phone || null,
+            role: 'customer',
+            isActive: true
+          });
+        }
+        resolvedCustomerId = customer.id;
+      } catch (e) {
+        console.warn('[Bookings] Unable to resolve/create customer user:', e.message);
+      }
+    }
+
     // Create booking
     const bookingData = {
       serviceId: serviceId,
@@ -56,13 +91,9 @@ router.post('/', optionalAuth, validateBooking, async (req, res) => {
       status: 'pending',
       paymentStatus: 'pending',
       bookingSource: 'website',
-      customerId: null
+      customerId: resolvedCustomerId
     };
-    
-    // If user is logged in, associate the booking
-    if (req.user) {
-      bookingData.customerId = req.user.id;
-    }
+
     
     const booking = await Booking.create(bookingData);
     
