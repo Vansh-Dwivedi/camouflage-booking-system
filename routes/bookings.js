@@ -70,6 +70,21 @@ router.post('/', optionalAuth, validateBooking, async (req, res) => {
       } catch (e) {
         console.warn('[Bookings] Unable to resolve/create customer user:', e.message);
       }
+      // Final fallback: if we still don't have a customer, create a unique guest user
+      if (!resolvedCustomerId) {
+        const crypto = require('crypto');
+        const tempPassword = crypto.randomBytes(12).toString('hex');
+        const guestEmail = `guest_${Date.now()}_${Math.floor(Math.random()*1e6)}@guest.local`;
+        const guest = await User.create({
+          name: customerInfo.name || 'Guest',
+          email: guestEmail,
+          password: tempPassword,
+          phone: customerInfo.phone || null,
+          role: 'customer',
+          isActive: true
+        });
+        resolvedCustomerId = guest.id;
+      }
     }
 
     // Create booking
