@@ -6,7 +6,7 @@ const env = {
   TWILIO_AUTH_TOKEN: (process.env.TWILIO_AUTH_TOKEN || '').trim(),
   TWILIO_FROM_SMS: (process.env.TWILIO_FROM_SMS || '').trim(),
   TWILIO_OWNER_PHONE_SMS: (process.env.TWILIO_OWNER_PHONE_SMS || '').trim(),
-  TWILIO_DEFAULT_COUNTRY_CODE: (process.env.TWILIO_DEFAULT_COUNTRY_CODE || '+1').trim(),
+  // TWILIO_DEFAULT_COUNTRY_CODE removed: no longer auto-prepending country code
   TWILIO_API_KEY: (process.env.TWILIO_API_KEY || '').trim(),
   TWILIO_API_SECRET: (process.env.TWILIO_API_SECRET || '').trim(),
   TWILIO_USE_API_KEY: String(process.env.TWILIO_USE_API_KEY || 'false').toLowerCase() === 'true'
@@ -30,12 +30,28 @@ function validateCreds() {
 
 function getClient() {
   if (!client) {
+    // Debug output for troubleshooting
+    console.log('[Twilio] Debug credentials:', {
+      SID: env.TWILIO_ACCOUNT_SID ? env.TWILIO_ACCOUNT_SID.slice(0,6) + '...' : undefined,
+      API_KEY: env.TWILIO_API_KEY ? env.TWILIO_API_KEY.slice(0,6) + '...' : undefined,
+      API_SECRET: env.TWILIO_API_SECRET ? env.TWILIO_API_SECRET.slice(0,4) + '...' : undefined,
+      AUTH_TOKEN: env.TWILIO_AUTH_TOKEN ? env.TWILIO_AUTH_TOKEN.slice(0,4) + '...' : undefined,
+      USE_API_KEY: env.TWILIO_USE_API_KEY
+    });
     // Use API Key auth only when explicitly enabled
     const canUseApiKey = env.TWILIO_API_KEY && env.TWILIO_API_SECRET && env.TWILIO_ACCOUNT_SID && env.TWILIO_USE_API_KEY;
     if (canUseApiKey) {
-      console.log('[Twilio] Using API Key authentication');
-      client = twilio(env.TWILIO_API_KEY, env.TWILIO_API_SECRET, { accountSid: env.TWILIO_ACCOUNT_SID });
-    } else {
+      try {
+        console.log('[Twilio] Trying API Key authentication');
+        client = twilio(env.TWILIO_API_KEY, env.TWILIO_API_SECRET, { accountSid: env.TWILIO_ACCOUNT_SID });
+        // Test credentials by fetching account
+        // (async check is done in health check, but here we just try to construct)
+      } catch (e) {
+        console.warn('[Twilio] API Key authentication failed, falling back to SID/Auth Token:', e.message);
+        client = null;
+      }
+    }
+    if (!client) {
       if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN) {
         console.warn('[Twilio] Missing credentials; SMS disabled');
         return null;
@@ -73,9 +89,9 @@ async function sendSms(to, body) {
 
 function normalizePhone(raw) {
   if (!raw) return raw;
+  // Only remove non-digit/non-plus, do not prepend any country code
   const trimmed = raw.replace(/[^\d+]/g, '');
-  if (trimmed.startsWith('+')) return trimmed;
-  return (env.TWILIO_DEFAULT_COUNTRY_CODE || '+1') + trimmed;
+  return trimmed;
 }
 
 // Health check to validate credentials at startup
