@@ -1,5 +1,44 @@
 const { body, validationResult } = require('express-validator');
 
+// Middleware to normalize booking payload
+// Accepts both flat (customerName, customerEmail, customerPhone)
+// and nested (customerInfo) structures
+const normalizeBookingPayload = (req, res, next) => {
+  // Only process POST requests to bookings endpoint
+  if (req.method === 'POST' && req.path.includes('/bookings')) {
+    // Initialize customerInfo if it doesn't exist
+    if (!req.body.customerInfo) {
+      req.body.customerInfo = {};
+    }
+
+    // Map flat properties to nested customerInfo
+    if (req.body.customerName) {
+      req.body.customerInfo.name = req.body.customerName;
+    }
+    if (req.body.customerEmail) {
+      req.body.customerInfo.email = req.body.customerEmail;
+    }
+    if (req.body.customerPhone) {
+      req.body.customerInfo.phone = req.body.customerPhone;
+    }
+    if (req.body.customerNotes) {
+      req.body.customerInfo.notes = req.body.customerNotes;
+    }
+    
+    // Trim and clean up values
+    if (req.body.customerInfo.name && typeof req.body.customerInfo.name === 'string') {
+      req.body.customerInfo.name = req.body.customerInfo.name.trim();
+    }
+    if (req.body.customerInfo.email && typeof req.body.customerInfo.email === 'string') {
+      req.body.customerInfo.email = req.body.customerInfo.email.trim().toLowerCase();
+    }
+    if (req.body.customerInfo.phone && typeof req.body.customerInfo.phone === 'string') {
+      req.body.customerInfo.phone = req.body.customerInfo.phone.trim();
+    }
+  }
+  next();
+};
+
 // Handle validation errors
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
@@ -189,5 +228,6 @@ module.exports = {
   validateService,
   validateBooking,
   validateBookingUpdate,
-  handleValidationErrors
+  handleValidationErrors,
+  normalizeBookingPayload
 };

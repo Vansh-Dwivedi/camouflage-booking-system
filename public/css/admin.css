@@ -926,3 +926,329 @@ body {
   color: var(--text-tertiary);
   display: block;
 }
+
+/* ===== ENHANCED DATA TABLE STYLING ===== */
+
+/* Main table container */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+/* Data table base */
+.data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--bg-primary);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Table header styling */
+.data-table thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.data-table thead tr {
+  border-bottom: 2px solid var(--primary);
+}
+
+.data-table th {
+  padding: 18px 20px;
+  text-align: left;
+  font-weight: 700;
+  color: white;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  white-space: nowrap;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.data-table th:last-child {
+  border-right: none;
+}
+
+/* Table body styling */
+.data-table tbody tr {
+  border-bottom: 1px solid var(--border-light);
+  transition: all 0.3s ease;
+  background: var(--bg-primary);
+}
+
+.data-table tbody tr:hover {
+  background: linear-gradient(90deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+  transform: scale(1.01);
+  box-shadow: inset 0 0 0 1px rgba(102, 126, 234, 0.2);
+}
+
+.data-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+/* Table cell styling */
+.data-table td {
+  padding: 16px 20px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  border-right: 1px solid var(--border-light);
+  vertical-align: middle;
+}
+
+.data-table td:last-child {
+  border-right: none;
+}
+
+/* Loading state in table */
+.data-table tbody tr.loading td {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-tertiary);
+}
+
+/* Status badges */
+.status-badge {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+.status-badge.pending {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid #f59e0b;
+}
+
+.status-badge.confirmed {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid #10b981;
+}
+
+.status-badge.completed {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  border: 1px solid #3b82f6;
+}
+
+.status-badge.cancelled {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid #ef4444;
+}
+
+.status-badge.active {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid #10b981;
+}
+
+.status-badge.inactive {
+  background: rgba(107, 114, 128, 0.15);
+  color: #6b7280;
+  border: 1px solid #6b7280;
+}
+
+/* Action buttons in table */
+.table-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.action-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--primary);
+  border-color: var(--primary);
+  transform: scale(1.1);
+}
+
+.action-btn.danger {
+  color: var(--danger);
+}
+
+.action-btn.danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--danger);
+}
+
+.action-btn.success {
+  color: var(--success);
+}
+
+.action-btn.success:hover {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: var(--success);
+}
+
+/* Empty state */
+.table-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-tertiary);
+}
+
+.table-empty i {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.table-empty p {
+  font-size: 16px;
+  margin: 8px 0;
+}
+
+/* Responsive table */
+@media (max-width: 768px) {
+  .data-table {
+    font-size: 12px;
+  }
+
+  .data-table th {
+    padding: 12px 12px;
+    font-size: 11px;
+  }
+
+  .data-table td {
+    padding: 12px;
+  }
+
+  .status-badge {
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+
+  .action-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+
+  .table-actions {
+    gap: 4px;
+  }
+}
+
+/* Scrollbar styling */
+.table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+/* Bookings table specific */
+.data-table.bookings-table thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Customers table specific */
+.data-table.customers-table thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Services grid enhanced */
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  padding: 20px 0;
+}
+
+.service-card {
+  background: var(--bg-primary);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.service-card:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
+  background: linear-gradient(135deg, rgba(255, 107, 129, 0.02) 0%, rgba(139, 92, 246, 0.02) 100%);
+}
+
+.service-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 16px;
+}
+
+.service-card-title {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.service-card-price {
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--primary);
+}
+
+.service-card-description {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.service-card-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  padding-top: 12px;
+  border-top: 1px solid var(--border-light);
+}
+
+.service-card-meta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}

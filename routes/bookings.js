@@ -5,7 +5,7 @@ const { auth, optionalAuth } = require('../middleware/auth');
 const { sendSms } = require('../utils/twilio');
 const { enqueue, scheduleReminder } = require('../utils/notificationQueue');
 const { buildTemplate } = require('../utils/notificationTemplates');
-const { validateBooking, validateBookingUpdate } = require('../middleware/validation');
+const { validateBooking, validateBookingUpdate, normalizeBookingPayload } = require('../middleware/validation');
 
 const router = express.Router();
 
@@ -50,7 +50,7 @@ router.get('/', async (req, res) => {
 });
 
 // Create new booking
-router.post('/', optionalAuth, validateBooking, async (req, res) => {
+router.post('/', optionalAuth, normalizeBookingPayload, validateBooking, async (req, res) => {
   try {
     const { serviceId, startTime, customerInfo } = req.body;
     
