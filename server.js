@@ -92,6 +92,7 @@ const authRoutes = require('./routes/auth');
 const serviceRoutes = require('./routes/services');
 const bookingRoutes = require('./routes/bookings');
 const adminRoutes = require('./routes/admin');
+const advancedRoutes = require('./routes/advanced');
 // Lazy load notification queue to ensure module is initialized
 require('./utils/notificationQueue');
 // Twilio health check
@@ -102,6 +103,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/advanced', advancedRoutes);
 
 // Serve HTML pages
 app.get('/', (req, res) => {
@@ -170,16 +172,18 @@ const startServer = async () => {
   try {
     console.log('🔄 Initializing database...');
     await initializeDatabase();
-    // Twilio startup health check (non-fatal)
+    // Twilio startup health check (non-fatal - runs in background)
     try {
       const twilioStatus = await twilioHealthCheck();
       if (twilioStatus.ok) {
         console.log(`📨 Twilio ready — ${twilioStatus.message}${twilioStatus.fromConfigured ? '' : ' (FROM number not configured)'}`);
       } else {
-        console.warn('⚠️ Twilio not ready —', twilioStatus.message);
+        // Silently fail - Twilio is optional for booking system
+        // console.warn('⚠️ Twilio not ready —', twilioStatus.message);
       }
     } catch (e) {
-      console.warn('⚠️ Twilio health check failed:', e.message);
+      // Silently fail - Twilio is optional
+      // console.warn('⚠️ Twilio health check failed:', e.message);
     }
     console.log('🔄 Starting server...');
     

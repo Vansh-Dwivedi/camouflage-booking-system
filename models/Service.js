@@ -118,6 +118,66 @@ const Service = sequelize.define('Service', {
   cancellationPolicy: {
     type: DataTypes.TEXT,
     defaultValue: "24 hours advance notice required for cancellation"
+  },
+  // Discount/Offer fields
+  hasDiscount: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  discountType: {
+    type: DataTypes.ENUM('percentage', 'fixed'),
+    allowNull: true,
+    validate: {
+      isIn: [['percentage', 'fixed']]
+    }
+  },
+  discountValue: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    validate: {
+      min: 0
+    }
+  },
+  offerName: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  offerDescription: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  offerStartDate: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  offerEndDate: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  // Image/thumbnail field
+  imageUrl: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    validate: {
+      isUrl: true
+    }
+  },
+  // Bundle concept: is this a package of services?
+  isBundle: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  // If isBundle=true, this JSON contains array of serviceIds that make up this bundle
+  bundleServices: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: []
+  },
+  // Bundle discount: additional discount when services are bought as bundle
+  bundleDiscount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0
   }
 }, {
   tableName: 'services',
@@ -147,6 +207,51 @@ const Service = sequelize.define('Service', {
 // Virtual for total duration including prep and cleanup
 Service.prototype.getTotalDuration = function() {
   return this.preparationTime + this.duration + this.cleanupTime;
+};
+
+// Calculate discounted price
+Service.prototype.getDiscountedPrice = function() {
+  if (!this.hasDiscount) {
+    return {
+      originalPrice: parseFloat(this.price),
+      discountedPrice: parseFloat(this.price),
+      discount: 0,
+      discountType: null
+    };
+  }
+  
+  const originalPrice = parseFloat(this.price);
+  let discountedPrice = originalPrice;
+  
+  if (this.discountType === 'percentage') {
+    discountedPrice = originalPrice - (originalPrice * this.discountValue / 100);
+  } else if (this.discountType === 'fixed') {
+    discountedPrice = Math.max(0, originalPrice - parseFloat(this.discountValue));
+  }
+  
+  return {
+    originalPrice,
+    discountedPrice: Math.round(discountedPrice * 100) / 100,
+    discount: parseFloat(this.discountValue),
+    discountType: this.discountType,
+    offerName: this.offerName,
+    offerDescription: this.offerDescription,
+    isActive: this.isOfferActive()
+  };
+};
+
+// Check if offer is currently active
+Service.prototype.isOfferActive = function() {
+  if (!this.hasDiscount) return false;
+  
+  const now = new Date();
+  const startDate = this.offerStartDate ? new Date(this.offerStartDate) : null;
+  const endDate = this.offerEndDate ? new Date(this.offerEndDate) : null;
+  
+  if (startDate && now < startDate) return false;
+  if (endDate && now > endDate) return false;
+  
+  return true;
 };
 
 // Get available time slots for a specific date

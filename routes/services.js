@@ -7,6 +7,187 @@ const { validateService } = require('../middleware/validation');
 
 const router = express.Router();
 
+// ============================================================
+// ADMIN ROUTES (Must come first to avoid /:id matching)
+// ============================================================
+
+// Get all services (including inactive) - Admin only
+router.get('/admin/all', auth, isAdmin, async (req, res) => {
+  try {
+    const services = await Service.findAll({ 
+      order: [['createdAt', 'DESC']] 
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        services,
+        count: services.length
+      }
+    });
+    
+  } catch (error) {
+    console.error('Get all services error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch services',
+      error: error.message
+    });
+  }
+});
+
+// Get single service for admin editing (including inactive services)
+router.get('/admin/:id', auth, isAdmin, async (req, res) => {
+  try {
+    const service = await Service.findByPk(req.params.id);
+    
+    if (!service) {
+      return res.status(404).json({
+        success: false,
+        message: 'Service not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        service
+      }
+    });
+    
+  } catch (error) {
+    console.error('Get admin service error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch service',
+      error: error.message
+    });
+  }
+});
+
+// Create new service
+router.post('/', auth, isAdmin, validateService, async (req, res) => {
+  try {
+    const service = await Service.create(req.body);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Service created successfully',
+      data: {
+        service
+      }
+    });
+    
+  } catch (error) {
+    console.error('Create service error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create service',
+      error: error.message
+    });
+  }
+});
+
+// Update service
+router.put('/:id', auth, isAdmin, validateService, async (req, res) => {
+  try {
+    const [updatedRows] = await Service.update(req.body, {
+      where: { id: req.params.id },
+      returning: true
+    });
+    
+    if (updatedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Service not found'
+      });
+    }
+    
+    const service = await Service.findByPk(req.params.id);
+    
+    res.json({
+      success: true,
+      message: 'Service updated successfully',
+      data: {
+        service
+      }
+    });
+    
+  } catch (error) {
+    console.error('Update service error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update service',
+      error: error.message
+    });
+  }
+});
+
+// Delete service (soft delete)
+router.delete('/:id', auth, isAdmin, async (req, res) => {
+  try {
+    const [updatedRows] = await Service.update(
+      { isActive: false },
+      { where: { id: req.params.id } }
+    );
+    
+    if (updatedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Service not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Service deleted successfully'
+    });
+    
+  } catch (error) {
+    console.error('Delete service error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete service',
+      error: error.message
+    });
+  }
+});
+
+// Upload service image
+router.post('/upload/image', auth, isAdmin, async (req, res) => {
+  try {
+    const { imageData } = req.body;
+    
+    if (!imageData) {
+      return res.status(400).json({
+        success: false,
+        message: 'No image data provided'
+      });
+    }
+    
+    // For now, we'll store the base64 data URL directly
+    // In production, you'd want to use cloud storage (AWS S3, Cloudinary, etc.)
+    res.json({
+      success: true,
+      data: {
+        imageUrl: imageData
+      }
+    });
+    
+  } catch (error) {
+    console.error('Upload image error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to upload image',
+      error: error.message
+    });
+  }
+});
+
+// ============================================================
+// PUBLIC ROUTES (These come after admin routes)
+// ============================================================
+
 // Get all active services
 router.get('/', async (req, res) => {
   try {
@@ -196,6 +377,38 @@ router.get('/:id/availability/:date', async (req, res) => {
 // (moved categories route above)
 
 // Admin routes
+// Upload service image
+router.post('/upload/image', auth, isAdmin, async (req, res) => {
+  try {
+    const { imageData } = req.body;
+    
+    if (!imageData) {
+      return res.status(400).json({
+        success: false,
+        message: 'No image data provided'
+      });
+    }
+    
+    // For now, we'll store the base64 data URL directly
+    // In production, you'd want to use cloud storage (AWS S3, Cloudinary, etc.)
+    res.json({
+      success: true,
+      data: {
+        imageUrl: imageData
+      }
+    });
+    
+  } catch (error) {
+    console.error('Upload image error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to upload image',
+      error: error.message
+    });
+  }
+});
+
+// Admin routes
 // Create new service
 router.post('/', auth, isAdmin, validateService, async (req, res) => {
   try {
@@ -281,31 +494,6 @@ router.delete('/:id', auth, isAdmin, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to delete service',
-      error: error.message
-    });
-  }
-});
-
-// Get all services (including inactive) - Admin only
-router.get('/admin/all', auth, isAdmin, async (req, res) => {
-  try {
-    const services = await Service.findAll({ 
-      order: [['createdAt', 'DESC']] 
-    });
-    
-    res.json({
-      success: true,
-      data: {
-        services,
-        count: services.length
-      }
-    });
-    
-  } catch (error) {
-    console.error('Get all services error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch services',
       error: error.message
     });
   }

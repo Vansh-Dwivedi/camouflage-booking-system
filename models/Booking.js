@@ -17,11 +17,25 @@ const Booking = sequelize.define('Booking', {
   },
   serviceId: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true, // Can be null if using serviceIds
     references: {
       model: 'services',
       key: 'id'
     }
+  },
+  // NEW: Support multiple services in one booking
+  serviceIds: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: [],
+    comment: 'Array of service IDs for this booking (allows multiple services)'
+  },
+  // Store service details for reference (name, price, duration)
+  services: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: [],
+    comment: 'Array of service objects with details'
   },
   startTime: {
     type: DataTypes.DATE,

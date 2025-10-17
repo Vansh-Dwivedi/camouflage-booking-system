@@ -3,22 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Camouflage Studio - Professional Makeup Services</title>
+    <title>Camouflage Studio - Luxury Makeup & Beauty Services</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="/css/style.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="/css/style-premium.css" rel="stylesheet">
 </head>
 <body>
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-logo">
-                <i class="fas fa-palette"></i>
-                <span>Camouflage Studio</span>
+                <i class="fas fa-sparkles"></i>
+                <span>Camouflage</span>
             </div>
             <div class="nav-menu">
                 <a href="/" class="nav-link active">Home</a>
                 <a href="/booking" class="nav-link">Book Now</a>
                 <a href="#services" class="nav-link">Services</a>
+                <a href="#testimonials" class="nav-link">Reviews</a>
                 <a href="#about" class="nav-link">About</a>
                 <a href="/login" class="nav-link login-btn">Login</a>
                 <a href="/admin" class="nav-link admin-btn">Admin</a>
@@ -31,20 +35,107 @@
         </div>
     </nav>
 
-    <!-- Hero Section -->
+    <!-- Hero Section - Premium Design -->
     <section class="hero">
-        <div class="hero-content">
-            <h1>Transform Your Look</h1>
-            <p>Professional makeup services with expert artists. Book your appointment and experience the art of beauty.</p>
-            <div class="hero-buttons">
-                <a href="/booking" class="btn btn-primary">Book Appointment</a>
-                <a href="#services" class="btn btn-outline">View Services</a>
+        <div class="hero-background">
+            <div class="hero-gradient"></div>
+            <div class="hero-shapes">
+                <div class="shape shape-1"></div>
+                <div class="shape shape-2"></div>
+                <div class="shape shape-3"></div>
             </div>
         </div>
-        <div class="hero-image">
-            <div class="image-placeholder">
-                <i class="fas fa-camera"></i>
-                <p>Professional Makeup Studio</p>
+        <div class="hero-content">
+            <div class="hero-badge">
+                <i class="fas fa-crown"></i>
+                <span>Premium Makeup Studio</span>
+            </div>
+            <h1 class="hero-title">Elevate Your Beauty</h1>
+            <p class="hero-subtitle">Experience artistry meets expertise. Our certified professionals transform your look with precision and passion.</p>
+            <div class="hero-buttons">
+                <a href="/booking" class="btn btn-primary btn-large">
+                    <i class="fas fa-calendar-star"></i>
+                    Book Your Appointment
+                </a>
+                <a href="#services" class="btn btn-secondary btn-large">
+                    <i class="fas fa-sparkles"></i>
+                    Explore Services
+                </a>
+            </div>
+            <div class="hero-stats">
+                <div class="stat">
+                    <div class="stat-number">500+</div>
+                    <div class="stat-label">Happy Clients</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">15+</div>
+                    <div class="stat-label">Expert Artists</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">50+</div>
+                    <div class="stat-label">Services</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why Choose Us Section -->
+    <section class="why-us-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">OUR EXCELLENCE</span>
+                <h2>Why Clients Choose Camouflage</h2>
+                <p>We combine artistic vision with technical expertise</p>
+            </div>
+            
+            <div class="why-us-grid">
+                <div class="why-us-card">
+                    <div class="why-us-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <h3>Expert Artists</h3>
+                    <p>Professionally trained makeup artists with 10+ years experience in bridal, editorial, and special occasion makeup.</p>
+                    <ul class="benefits-list">
+                        <li><i class="fas fa-check"></i> Certified Makeup Artists</li>
+                        <li><i class="fas fa-check"></i> International Training</li>
+                    </ul>
+                </div>
+                
+                <div class="why-us-card">
+                    <div class="why-us-icon">
+                        <i class="fas fa-palette"></i>
+                    </div>
+                    <h3>Premium Products</h3>
+                    <p>We use only high-end, cruelty-free makeup brands trusted by professionals worldwide.</p>
+                    <ul class="benefits-list">
+                        <li><i class="fas fa-check"></i> Luxury Brands Only</li>
+                        <li><i class="fas fa-check"></i> Hypoallergenic & Safe</li>
+                    </ul>
+                </div>
+                
+                <div class="why-us-card">
+                    <div class="why-us-icon">
+                        <i class="fas fa-headset"></i>
+                    </div>
+                    <h3>24/7 Support</h3>
+                    <p>Our dedicated team is always ready to help with consultations, customizations, and special requests.</p>
+                    <ul class="benefits-list">
+                        <li><i class="fas fa-check"></i> Instant Response</li>
+                        <li><i class="fas fa-check"></i> Custom Consultations</li>
+                    </ul>
+                </div>
+                
+                <div class="why-us-card">
+                    <div class="why-us-icon">
+                        <i class="fas fa-award"></i>
+                    </div>
+                    <h3>Award Winning</h3>
+                    <p>Recognized for excellence in makeup artistry and customer satisfaction across multiple platforms.</p>
+                    <ul class="benefits-list">
+                        <li><i class="fas fa-check"></i> Industry Recognition</li>
+                        <li><i class="fas fa-check"></i> 5-Star Rated</li>
+                    </ul>
+                </div>
             </div>
         </div>
     </section>
@@ -53,59 +144,185 @@
     <section id="services" class="services-section">
         <div class="container">
             <div class="section-header">
-                <h2>Our Services</h2>
-                <p>Discover our range of professional makeup and beauty services</p>
+                <span class="section-label">OUR COLLECTION</span>
+                <h2>Premium Makeup Services</h2>
+                <p>Discover our curated range of professional makeup artistry</p>
             </div>
             
             <div class="services-grid" id="servicesGrid">
                 <!-- Services will be loaded dynamically -->
                 <div class="service-loading">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <p>Loading services...</p>
+                    <i class="fas fa-sparkles"></i>
+                    <p>Loading our beautiful collection...</p>
+                </div>
+            </div>
+
+            <div class="services-cta">
+                <a href="/booking" class="btn btn-primary">
+                    <i class="fas fa-calendar-star"></i>
+                    Book All Services
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section id="testimonials" class="testimonials-section">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">CLIENT STORIES</span>
+                <h2>Love From Our Clients</h2>
+                <p>Real experiences from real customers</p>
+            </div>
+            
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <p class="testimonial-text">"The makeup was flawless! The artist understood exactly what I wanted and delivered perfection. I've never felt more confident on my wedding day."</p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">SA</div>
+                        <div class="author-info">
+                            <p class="author-name">Sarah Anderson</p>
+                            <p class="author-title">Bridal Makeup</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <p class="testimonial-text">"Professional, punctual, and incredibly talented. The makeup lasted all day and looked stunning in every photo. Highly recommended!"</p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">MJ</div>
+                        <div class="author-info">
+                            <p class="author-name">Michelle Johnson</p>
+                            <p class="author-title">Event Makeup</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <p class="testimonial-text">"I've been to many makeup studios, but Camouflage is by far the best. The artists are true professionals and the attention to detail is impeccable."</p>
+                    <div class="testimonial-author">
+                        <div class="author-avatar">EP</div>
+                        <div class="author-info">
+                            <p class="author-name">Emma Parker</p>
+                            <p class="author-title">Regular Client</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Features Section -->
-    <section class="features-section">
+    <!-- Gallery Section -->
+    <section class="gallery-section">
         <div class="container">
             <div class="section-header">
-                <h2>Why Choose Camouflage Studio?</h2>
-                <p>Experience professional makeup services with modern booking convenience</p>
+                <span class="section-label">OUR STUDIO</span>
+                <h2>Images of Our Studios</h2>
+                <p>Step inside our modern, luxury beauty studios designed for your comfort</p>
             </div>
-            
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-calendar-check"></i>
+            <div class="gallery-grid">
+                <div class="gallery-item">
+                    <div class="gallery-image">
+                        <img src="assets/a1.jpg" alt="Professional Makeup Stations">
                     </div>
-                    <h3>Easy Online Booking</h3>
-                    <p>Book appointments 24/7 with our simple and intuitive booking system</p>
+                    <div class="gallery-overlay">
+                        <h3>Makeup Stations</h3>
+                        <p>Professional styling area with mirrors & storage</p>
+                    </div>
+                </div>
+
+                <div class="gallery-item">
+                    <div class="gallery-image">
+                        <img src="assets/a2.jpg" alt="Advanced Beauty Technology">
+                    </div>
+                    <div class="gallery-overlay">
+                        <h3>Beauty Technology</h3>
+                        <p>State-of-the-art Hydra equipment</p>
+                    </div>
+                </div>
+
+                <div class="gallery-item">
+                    <div class="gallery-image">
+                        <img src="assets/a3.jpg" alt="Relaxation Lounge">
+                    </div>
+                    <div class="gallery-overlay">
+                        <h3>Relaxation Lounge</h3>
+                        <p>Comfortable waiting area with premium amenities</p>
+                    </div>
+                </div>
+
+                <div class="gallery-item">
+                    <div class="gallery-image">
+                        <img src="assets/a4.jpg" alt="Treatment Room">
+                    </div>
+                    <div class="gallery-overlay">
+                        <h3>Treatment Room</h3>
+                        <p>Modern facilities with professional equipment</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about-section">
+        <div class="container">
+            <div class="about-content-centered">
+                <div class="section-header center">
+                    <span class="section-label">ABOUT US</span>
+                    <h2>Meet Bindu</h2>
+                    <p>Your Advanced Aesthetics Expert</p>
                 </div>
                 
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-clock"></i>
+                <div class="about-text-center">
+                    <p>Bindu is a highly skilled, Australian-qualified Aesthetician and Hair Expert with a strong background in skin health, advanced facial treatments, and modern haircare techniques. With a passion for enhancing natural beauty and restoring confidence, Bindu blends science-backed skincare with creative hair artistry to deliver results that speak for themselves.</p>
+                    
+                    <div class="about-values">
+                        <div class="value-item">
+                            <div class="value-icon">
+                                <i class="fas fa-lightbulb"></i>
+                            </div>
+                            <h4>Advanced Technology</h4>
+                            <p>TGA-approved Korean diode laser technology for professional hair removal</p>
+                        </div>
+                        
+                        <div class="value-item">
+                            <div class="value-icon">
+                                <i class="fas fa-heart"></i>
+                            </div>
+                            <h4>All Skin Types</h4>
+                            <p>Safely treats deeper, richer complexions with custom settings</p>
+                        </div>
+                        
+                        <div class="value-item">
+                            <div class="value-icon">
+                                <i class="fas fa-rocket"></i>
+                            </div>
+                            <h4>Fast Results</h4>
+                            <p>Visible smoother skin after just 2–3 sessions</p>
+                        </div>
                     </div>
-                    <h3>Real-time Availability</h3>
-                    <p>See available time slots instantly and book your preferred appointment time</p>
-                </div>
-                
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-user-check"></i>
-                    </div>
-                    <h3>Professional Artists</h3>
-                    <p>Our certified makeup artists bring years of experience to every appointment</p>
-                </div>
-                
-                <div class="feature-card">
-                    <div class="feature-icon">
-                        <i class="fas fa-mobile-alt"></i>
-                    </div>
-                    <h3>Mobile Friendly</h3>
-                    <p>Manage your bookings on any device with our responsive design</p>
                 </div>
             </div>
         </div>
@@ -113,11 +330,14 @@
 
     <!-- CTA Section -->
     <section class="cta-section">
-        <div class="container">
+        <div class="cta-container">
             <div class="cta-content">
-                <h2>Ready to Transform Your Look?</h2>
-                <p>Book your appointment today and experience professional makeup artistry</p>
-                <a href="/booking" class="btn btn-primary btn-large">Book Now</a>
+                <h2>Ready to Experience Luxury Makeup?</h2>
+                <p>Join hundreds of satisfied clients who trust Camouflage for their beauty transformation</p>
+                <a href="/booking" class="btn btn-primary btn-large">
+                    <i class="fas fa-calendar-star"></i>
+                    Book Your Appointment Today
+                </a>
             </div>
         </div>
     </section>
@@ -147,18 +367,17 @@
                 <div class="footer-section">
                     <h4>Contact Info</h4>
                     <div class="contact-info">
-                        <p><i class="fas fa-phone"></i> (555) 123-4567</p>
-                        <p><i class="fas fa-envelope"></i> info@camouflagestudio.com</p>
-                        <p><i class="fas fa-map-marker-alt"></i> 123 Beauty Lane, City</p>
+                        <p><i class="fas fa-phone"></i> 0433 000 516</p>
+                        <p><i class="fas fa-map-marker-alt"></i> 33 Camouflage Drive, Epping VIC 3076</p>
                     </div>
                 </div>
                 
                 <div class="footer-section">
                     <h4>Business Hours</h4>
                     <div class="hours">
-                        <p>Monday - Friday: 9:00 AM - 7:00 PM</p>
-                        <p>Saturday: 9:00 AM - 5:00 PM</p>
-                        <p>Sunday: Closed</p>
+                        <p>Mon - Fri: 9:30 AM - 8:00 PM</p>
+                        <p>Saturday: 10:00 AM - 5:00 PM</p>
+                        <p>Sunday: 10:30 AM - 2:00 PM</p>
                     </div>
                 </div>
             </div>

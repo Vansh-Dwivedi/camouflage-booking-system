@@ -1,998 +1,594 @@
-// Admin dashboard functionality
-let services = [];
-let bookings = [];
-let users = [];
-let analytics = {};
-let currentView = 'dashboard';
+// Admin Services JavaScript
+let currentServiceId = null;
 
-document.addEventListener('DOMContentLoaded', async () => {
-    // Check if user has token
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-        window.location.href = '/login?redirect=/admin';
-        return;
-    }
-    
-    // Load current user if not already loaded
-    if (!currentUser) {
-        try {
-            currentUser = await App.getCurrentUser();
-        } catch (error) {
-            console.error('Failed to get current user:', error);
-            localStorage.removeItem('authToken');
-            window.location.href = '/login?redirect=/admin';
-            return;
-        }
-    }
-    
-    // Check if user is admin
-    if (!currentUser || currentUser.role !== 'admin') {
-        App.showError('Access denied. Admin rights required.');
-        setTimeout(() => {
-            window.location.href = '/';
-        }, 2000);
-        return;
-    }
-    
-    // Determine current section from path for multi-page admin
-    const path = window.location.pathname;
-    let section = 'dashboard';
-    if (path === '/admin') section = 'dashboard';
-    else if (path.startsWith('/admin/')) section = path.split('/')[2] || 'dashboard';
-
-    initializeAdmin(section);
-    if (section === 'settings') initializeNotificationSettings();
-});
-
-async function initializeAdmin(section) {
-    try {
-        // Highlight active nav item (server sends separate page per tab)
-        document.querySelectorAll('.nav-item').forEach(a => {
-            const sec = a.getAttribute('data-section');
-            a.classList.toggle('active', sec === section);
-        });
-
-        // Set current view for real-time updates logic
-        currentView = section;
-
-        // Load only the relevant section's data
-        switch (section) {
-            case 'dashboard':
-                await loadDashboardData();
-                break;
-            case 'bookings':
-                await loadBookings();
-                break;
-            case 'services':
-                await loadServices();
-                // Bind service form submit if present
-                const svcForm = document.getElementById('serviceForm');
-                if (svcForm && !svcForm.dataset.bound) {
-                    svcForm.addEventListener('submit', (ev) => { ev.preventDefault(); saveService(); });
-                    svcForm.dataset.bound = 'true';
-                }
-                break;
-            case 'customers':
-                await loadCustomers();
-                break;
-            case 'analytics':
-                await loadAnalytics();
-                break;
-            case 'settings':
-                // settings page initializes its own form
-                break;
-        }
-
-        // Real-time updates
-        initializeRealTimeUpdates();
-        
-    } catch (error) {
-        console.error('Error initializing admin:', error);
-        App.showError('Failed to load admin dashboard.');
-    }
+// Helper function to get auth token from localStorage
+function getAuthToken() {
+    return localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || '';
 }
 
-async function initializeNotificationSettings() {
-        const form = document.getElementById('notificationSettingsForm');
-        if (!form) return;
-        try {
-            const resp = await App.apiRequest('/api/admin/settings/notifications');
-            const cfg = resp.data;
-            setVal('notifyEnabled', cfg.enabled, true);
-            setVal('whatsappEnabled', cfg.whatsappEnabled, true);
-            setVal('fromSms', cfg.fromSms, !cfg.fromSmsReadOnly);
-            setVal('ownerPhoneSms', cfg.ownerPhoneSms, true);
-            setVal('fromWhatsapp', cfg.fromWhatsapp, !cfg.fromWhatsappReadOnly);
-            setVal('ownerPhoneWhatsapp', cfg.ownerPhoneWhatsapp, true);
-            setVal('defaultCountryCode', cfg.defaultCountryCode, true);
-            setVal('reminderHours', cfg.reminderHours, true);
-        } catch (e) {
-            console.error('Load notification settings failed', e);
-        }
-        form.addEventListener('submit', async (ev) => {
-            ev.preventDefault();
-            const payload = {
-                enabled: document.getElementById('notifyEnabled').checked,
-                whatsappEnabled: document.getElementById('whatsappEnabled').checked,
-                fromSms: document.getElementById('fromSms').value.trim(),
-                ownerPhoneSms: document.getElementById('ownerPhoneSms').value.trim(),
-                fromWhatsapp: document.getElementById('fromWhatsapp').value.trim(),
-                ownerPhoneWhatsapp: document.getElementById('ownerPhoneWhatsapp').value.trim(),
-                defaultCountryCode: document.getElementById('defaultCountryCode').value.trim(),
-                reminderHours: parseInt(document.getElementById('reminderHours').value,10) || 24
-            };
-            try {
-                await App.apiRequest('/api/admin/settings/notifications', { method:'PUT', body: JSON.stringify(payload) });
-                App.showSuccess('Notification settings saved');
-            } catch (e) {
-                App.showError('Failed to save notification settings');
+// Helper function to make authenticated API calls
+async function authenticatedFetch(url, options = {}) {
+    const token = getAuthToken();
+    const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers
+    };
+    
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    return fetch(url, {
+        ...options,
+        headers
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Only load services if we're on the services page
+    if (document.getElementById('servicesGrid')) {
+        loadServices();
+        setupFormHandlers();
+        setupDiscountToggle();
+    }
+    
+    // Load bookings if we're on the bookings page
+    if (document.getElementById('bookingsTable')) {
+        loadBookings();
+    }
+    
+    // Load customers if we're on the customers page
+    if (document.getElementById('customersTable')) {
+        loadCustomers();
+    }
+    
+    // Load analytics if we're on the analytics page
+    if (document.getElementById('bookingsChart')) {
+        loadAnalytics();
+    }
+    
+    // Load settings if we're on the settings page
+    if (document.getElementById('notificationSettings')) {
+        loadSettings();
+    }
+    
+    // Handle nav items - allow normal navigation to all pages
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            // Don't prevent default - let links work normally!
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+});
+
+function setupDiscountToggle() {
+    const hasDiscountCheckbox = document.getElementById('hasDiscount');
+    const discountSection = document.getElementById('discountSection');
+    
+    if (hasDiscountCheckbox) {
+        hasDiscountCheckbox.addEventListener('change', function() {
+            discountSection.style.display = this.checked ? 'block' : 'none';
+            if (this.checked) {
+                document.getElementById('discountType').required = true;
+                document.getElementById('discountValue').required = true;
+                document.getElementById('offerName').required = true;
+            } else {
+                document.getElementById('discountType').required = false;
+                document.getElementById('discountValue').required = false;
+                document.getElementById('offerName').required = false;
             }
         });
     }
-
-function setVal(id, value, editable) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    if (el.type === 'checkbox') {
-        el.checked = !!value;
-    } else if (value !== undefined) {
-        el.value = value;
-    }
-    if (editable === false) {
-        el.disabled = true;
-        el.title = 'Managed by environment variable';
-    }
 }
-// Navigation is native links now; no SPA switching required
 
-// Dashboard
-async function loadDashboardData() {
-    try {
-        App.showLoading('dashboardStats');
-        
-        const response = await App.apiRequest('/api/admin/dashboard');
-        const data = response.data;
-        
-        // Update stats cards
-        updateStatsCards(data.stats);
-        
-        // Update recent bookings
-        updateRecentBookings(data.recentBookings);
-        
-        // Update quick actions
-        updateQuickActions(data);
-        
-    } catch (error) {
-        console.error('Error loading dashboard:', error);
-        App.showError('Failed to load dashboard data.');
+function setupFormHandlers() {
+    const serviceForm = document.getElementById('serviceForm');
+    if (serviceForm) {
+        serviceForm.addEventListener('submit', saveService);
     }
 }
 
-function updateStatsCards(stats) {
-    // API supplies: totalBookings,totalServices,totalCustomers,totalRevenue, averageBookingValue, bookingsByStatus
-    const totalBookingsEl = document.getElementById('totalBookings');
-    const totalRevenueEl = document.getElementById('totalRevenue');
-    const totalServicesEl = document.getElementById('totalServices');
-    const totalCustomersEl = document.getElementById('totalCustomers');
-
-    if (totalBookingsEl) totalBookingsEl.textContent = stats.totalBookings ?? 0;
-    if (totalRevenueEl) totalRevenueEl.textContent = App.formatCurrency(stats.totalRevenue ?? 0);
-    if (totalServicesEl) totalServicesEl.textContent = stats.totalServices ?? 0;
-    if (totalCustomersEl) totalCustomersEl.textContent = stats.totalCustomers ?? 0;
-}
-
-function updateRecentBookings(recentBookings) {
-    const container = document.getElementById('recentBookings');
-    
-    if (!recentBookings || recentBookings.length === 0) {
-        container.innerHTML = '<p class="no-data">No recent bookings</p>';
-        return;
-    }
-    
-    container.innerHTML = recentBookings.map(booking => `
-        <div class="booking-item" data-booking-id="${booking.id}">
-            <div class="booking-info">
-                <h4>${booking.customerInfo.name}</h4>
-                <p>${booking.service.name}</p>
-                <div class="booking-meta">
-                    <span class="booking-time">
-                        <i class="fas fa-calendar"></i>
-                        ${App.formatDateTime(booking.startTime)}
-                    </span>
-                    <span class="booking-status status-${booking.status}">${booking.status}</span>
-                </div>
-            </div>
-            <div class="booking-actions">
-                <button onclick="viewBooking('${booking.id}')" class="btn btn-sm btn-outline">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button onclick="editBooking('${booking.id}')" class="btn btn-sm btn-outline">
-                    <i class="fas fa-edit"></i>
-                </button>
-            </div>
-        </div>
-    `).join('');
-}
-
-function updateQuickActions(data) {
-    // Update pending bookings count
-    const pendingCount = data.stats.pendingBookings || 0;
-    const pendingBadge = document.querySelector('[data-action="pending-bookings"] .badge');
-    if (pendingBadge) {
-        pendingBadge.textContent = pendingCount;
-        pendingBadge.style.display = pendingCount > 0 ? 'block' : 'none';
-    }
-}
-
-// Bookings Management
-async function loadBookings() {
-    try {
-        App.showLoading('bookingsTable');
-        
-        const response = await App.apiRequest('/api/admin/bookings');
-        bookings = response.data.bookings;
-        
-        displayBookings(bookings);
-        setupBookingsFilters();
-        
-    } catch (error) {
-        console.error('Error loading bookings:', error);
-        document.getElementById('bookingsTable').innerHTML = `
-            <div class="error-message">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p>Failed to load bookings.</p>
-            </div>
-        `;
-    }
-}
-
-function displayBookings(bookingsToShow) {
-    const table = document.getElementById('bookingsTable');
-    
-    if (bookingsToShow.length === 0) {
-        table.innerHTML = '<div class="no-data">No bookings found</div>';
-        return;
-    }
-    
-    table.innerHTML = `
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Customer</th>
-                    <th>Service</th>
-                    <th>Date & Time</th>
-                    <th>Status</th>
-                    <th>Price</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${bookingsToShow.map(booking => `
-                    <tr data-booking-id="${booking.id}">
-                        <td>
-                            <div class="customer-info">
-                                <strong>${booking.customerInfo.name}</strong>
-                                <div class="customer-contact">
-                                    <small>${booking.customerInfo.email}</small>
-                                    <br>
-                                    <small>${booking.customerInfo.phone}</small>
-                                </div>
-                            </div>
-                        </td>
-                        <td>${booking.service.name}</td>
-                        <td>
-                            <div class="booking-datetime">
-                                <div>${App.formatDate(booking.startTime)}</div>
-                                <small>${App.formatTime(booking.startTime)} - ${App.formatTime(booking.endTime)}</small>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="status-container">
-                                <select class="status-select" id="status-${booking.id}" data-original="${booking.status}">
-                                    <option value="pending" ${booking.status === 'pending' ? 'selected' : ''}>Pending</option>
-                                    <option value="confirmed" ${booking.status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
-                                    <option value="in-progress" ${booking.status === 'in-progress' ? 'selected' : ''}>In Progress</option>
-                                    <option value="completed" ${booking.status === 'completed' ? 'selected' : ''}>Completed</option>
-                                    <option value="cancelled" ${booking.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
-                                    <option value="no-show" ${booking.status === 'no-show' ? 'selected' : ''}>No Show</option>
-                                </select>
-                                <button class="btn btn-sm btn-primary apply-status-btn" 
-                                        onclick="applyStatusChange('${booking.id}')" 
-                                        id="apply-${booking.id}" 
-                                        style="display: none; margin-left: 8px;">
-                                    <i class="fas fa-paper-plane"></i> Apply
-                                </button>
-                            </div>
-                        </td>
-                        <td>${App.formatCurrency(booking.pricing.finalPrice)}</td>
-                        <td>
-                            <div class="action-buttons">
-                                <button onclick="viewBooking('${booking.id}')" class="btn btn-sm btn-outline" title="View">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button onclick="editBooking('${booking.id}')" class="btn btn-sm btn-outline" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button onclick="cancelBooking('${booking.id}')" class="btn btn-sm btn-danger" title="Cancel">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                                <button onclick="deleteBooking('${booking.id}')" class="btn btn-sm btn-danger" title="Delete permanently">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>
-    `;
-    
-    // Add event listeners for status dropdowns
-    setTimeout(() => {
-        console.log('Setting up status dropdown listeners...');
-        document.querySelectorAll('.status-select').forEach(select => {
-            select.addEventListener('change', function() {
-                const bookingId = this.id.replace('status-', '');
-                const originalStatus = this.dataset.original;
-                const newStatus = this.value;
-                const applyBtn = document.getElementById(`apply-${bookingId}`);
-                
-                if (newStatus !== originalStatus) {
-                    applyBtn.style.display = 'block';
-                } else {
-                    applyBtn.style.display = 'none';
-                }
-            });
-        });
-    }, 100);
-}
-
-async function applyStatusChange(bookingId) {
-    const select = document.getElementById(`status-${bookingId}`);
-    const applyBtn = document.getElementById(`apply-${bookingId}`);
-    const newStatus = select.value;
-    const originalStatus = select.dataset.original;
-    
-    if (newStatus === originalStatus) {
-        applyBtn.style.display = 'none';
-        return;
-    }
-    
-    try {
-        applyBtn.disabled = true;
-        applyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-        
-        await updateBookingStatus(bookingId, newStatus);
-        
-        // Update the original status
-        select.dataset.original = newStatus;
-        applyBtn.style.display = 'none';
-        applyBtn.disabled = false;
-        applyBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Apply';
-        
-    } catch (error) {
-        // Revert the select value
-        select.value = originalStatus;
-        applyBtn.style.display = 'none';
-        applyBtn.disabled = false;
-        applyBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Apply';
-    }
-}
-
-function setupBookingsFilters() {
-    const statusFilter = document.getElementById('bookingStatusFilter') || document.getElementById('statusFilter');
-    const dateFilter = document.getElementById('dateFilter');
-    const searchInput = document.getElementById('searchBookings');
-
-    if (statusFilter) statusFilter.addEventListener('change', filterBookings);
-    if (dateFilter) dateFilter.addEventListener('change', filterBookings);
-    if (searchInput) searchInput.addEventListener('input', App.debounce(filterBookings, 300));
-}
-
-function filterBookings() {
-    const statusFilter = document.getElementById('bookingStatusFilter') || document.getElementById('statusFilter');
-    const status = statusFilter ? statusFilter.value : 'all';
-    const dateFilter = document.getElementById('dateFilter');
-    const dateRange = dateFilter ? dateFilter.value : 'all';
-    const searchInput = document.getElementById('searchBookings');
-    const search = searchInput ? searchInput.value.toLowerCase() : '';
-    
-    let filteredBookings = bookings;
-    
-    // Filter by status
-    if (status !== 'all') {
-        filteredBookings = filteredBookings.filter(booking => booking.status === status);
-    }
-    
-    // Filter by date range
-    if (dateRange !== 'all') {
-        const today = new Date();
-        let startDate, endDate;
-        
-        switch (dateRange) {
-            case 'today':
-                startDate = new Date(today.setHours(0, 0, 0, 0));
-                endDate = new Date(today.setHours(23, 59, 59, 999));
-                break;
-            case 'week':
-                startDate = new Date(today.setDate(today.getDate() - today.getDay()));
-                endDate = new Date(today.setDate(today.getDate() - today.getDay() + 6));
-                break;
-            case 'month':
-                startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-                endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-                break;
-        }
-        
-        if (startDate && endDate) {
-            filteredBookings = filteredBookings.filter(booking => {
-                const bookingDate = new Date(booking.startTime);
-                return bookingDate >= startDate && bookingDate <= endDate;
-            });
-        }
-    }
-    
-    // Filter by search term
-    if (search) {
-        filteredBookings = filteredBookings.filter(booking =>
-            booking.customerInfo.name.toLowerCase().includes(search) ||
-            booking.customerInfo.email.toLowerCase().includes(search) ||
-            booking.service.name.toLowerCase().includes(search)
-        );
-    }
-    
-    displayBookings(filteredBookings);
-}
-
-// Modal helpers used by HTML onclicks
-function openServiceModal() { showServiceModal(); }
-function closeServiceModal() { App.closeModal('serviceModal'); }
-
-async function updateBookingStatus(bookingId, newStatus) {
-    try {
-        await App.apiRequest(`/api/admin/bookings/${bookingId}/status`, {
-            method: 'PUT',
-            body: JSON.stringify({ status: newStatus })
-        });
-
-        // Update local data
-        const booking = bookings.find(b => b.id === bookingId);
-        if (booking) {
-            booking.status = newStatus;
-        }
-        
-        App.showSuccess('Booking status updated successfully');
-        return true;
-    } catch (error) {
-        console.error('Error updating booking status:', error);
-        App.showError('Failed to update booking status');
-        
-        // Revert the select value
-        const select = document.querySelector(`[data-booking-id="${bookingId}"] .status-select`);
-        const originalBooking = bookings.find(b => b.id === bookingId);
-        if (select && originalBooking) {
-            select.value = originalBooking.status;
-        }
-        return false;
-    }
-}
-
-// Export helpers
-function exportBookings() {
-    const statusFilter = document.getElementById('bookingStatusFilter') || document.getElementById('statusFilter');
-    const params = new URLSearchParams();
-    if (statusFilter && statusFilter.value && statusFilter.value !== 'all') params.set('status', statusFilter.value);
-    const url = `/api/admin/export/bookings${params.toString() ? ('?' + params.toString()) : ''}`;
-    window.open(url, '_blank');
-}
-
-// Delete a single booking (hard delete)
-async function deleteBooking(bookingId) {
-    if (!confirm('Delete this booking permanently? This cannot be undone.')) return;
-    try {
-        await App.apiRequest(`/api/admin/bookings/${bookingId}`, { method: 'DELETE' });
-        // Reload from server so counts/pagination stay accurate
-        await loadBookings();
-        App.showSuccess('Booking deleted');
-    } catch (e) {
-        console.error('Delete booking failed', e);
-        App.showError('Failed to delete booking');
-    }
-}
-
-// Bulk delete bookings (optionally filtered by status)
-async function deleteAllBookings() {
-    const statusFilter = document.getElementById('bookingStatusFilter') || document.getElementById('statusFilter');
-    const status = statusFilter ? statusFilter.value : 'all';
-    const scopeText = status && status !== 'all' ? `all ${status} bookings` : 'ALL bookings';
-    if (!confirm(`Are you sure you want to delete ${scopeText}? This cannot be undone.`)) return;
-    try {
-        const params = new URLSearchParams();
-        params.set('confirm', 'true');
-        if (status && status !== 'all') params.set('status', status);
-        await App.apiRequest(`/api/admin/bookings?${params.toString()}`, { method: 'DELETE' });
-        // Reload list from server to reflect counts accurately
-        await loadBookings();
-        App.showSuccess(`Deleted ${scopeText}`);
-    } catch (e) {
-        console.error('Bulk delete bookings failed', e);
-        App.showError('Failed to bulk delete bookings');
-    }
-}
-
-// Services Management
 async function loadServices() {
+    const servicesGrid = document.getElementById('servicesGrid');
+    if (!servicesGrid) return;
+    
     try {
-        App.showLoading('servicesGrid');
+        const response = await authenticatedFetch('/api/services/admin/all');
+        const data = await response.json();
         
-        const response = await App.apiRequest('/api/admin/services');
-        services = response.data.services;
+        // Handle both response formats: array directly or wrapped in data.services
+        const services = Array.isArray(data) ? data : (data.data?.services || data.services || []);
         
-        displayServices(services);
-        
+        if (services && services.length > 0) {
+            servicesGrid.innerHTML = services.map(service => {
+                const priceInfo = calculateDiscountedPrice(service);
+                const showDiscount = service.hasDiscount && priceInfo.isActive;
+                
+                return `
+                    <div class="service-card">
+                        <div class="service-card-header">
+                            <div>
+                                <h3 class="service-card-title">${service.name}</h3>
+                                <p style="margin: 4px 0; color: var(--text-secondary); font-size: 12px;">${service.category}</p>
+                            </div>
+                            ${showDiscount ? `<span class="service-discount-badge">${priceInfo.discountType === 'percentage' ? priceInfo.discount + '%' : '$' + priceInfo.discount} OFF</span>` : ''}
+                        </div>
+                        
+                        <p style="margin: 12px 0; color: var(--text-secondary); font-size: 13px;">${service.description}</p>
+                        
+                        <div style="margin: 12px 0;">
+                            ${showDiscount ? `
+                                <div class="service-original-price">$${parseFloat(service.price).toFixed(2)}</div>
+                                <div class="service-price">$${priceInfo.discountedPrice.toFixed(2)}</div>
+                                <div style="font-size: 12px; color: var(--primary); margin-top: 4px;">${service.offerName}</div>
+                            ` : `
+                                <div class="service-price">$${parseFloat(service.price).toFixed(2)}</div>
+                            `}
+                        </div>
+                        
+                        <div style="margin: 12px 0; font-size: 12px; color: var(--text-secondary);">
+                            <i class="fas fa-clock"></i> ${service.duration} min
+                        </div>
+                        
+                        <div class="service-actions">
+                            <button class="btn btn-primary" onclick="editService(${service.id})">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="btn btn-outline" onclick="deleteService(${service.id})">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            servicesGrid.innerHTML = '<div class="loading">No services found</div>';
+        }
     } catch (error) {
         console.error('Error loading services:', error);
-        document.getElementById('servicesGrid').innerHTML = `
-            <div class="error-message">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p>Failed to load services.</p>
-            </div>
-        `;
+        servicesGrid.innerHTML = `<div class="loading" style="color: red;">Error loading services: ${error.message}</div>`;
     }
 }
 
-function displayServices(servicesToShow) {
-    const grid = document.getElementById('servicesGrid');
-    
-    if (servicesToShow.length === 0) {
-        grid.innerHTML = '<div class="no-data">No services found</div>';
-        return;
+function calculateDiscountedPrice(service) {
+    if (!service.hasDiscount) {
+        return {
+            originalPrice: parseFloat(service.price),
+            discountedPrice: parseFloat(service.price),
+            discount: 0,
+            discountType: null,
+            isActive: false
+        };
     }
     
-    grid.innerHTML = servicesToShow.map(service => `
-        <div class="service-card" data-service-id="${service.id}">
-            <div class="service-header">
-                <h3>${service.name}</h3>
-                <div class="service-status ${service.isActive ? 'active' : 'inactive'}">
-                    ${service.isActive ? 'Active' : 'Inactive'}
-                </div>
-            </div>
-            <div class="service-details">
-                <p class="service-description">${service.description}</p>
-                <div class="service-meta">
-                    <div class="meta-item">
-                        <i class="fas fa-tag"></i>
-                        <span>${service.category}</span>
-                    </div>
-                    <div class="meta-item">
-                        <i class="fas fa-clock"></i>
-                        <span>${App.formatDuration(service.duration)}</span>
-                    </div>
-                    <div class="meta-item">
-                        <i class="fas fa-dollar-sign"></i>
-                        <span>${App.formatCurrency(service.price)}</span>
-                    </div>
-                </div>
-            </div>
-            <div class="service-actions">
-                <button onclick="editService('${service.id}')" class="btn btn-sm btn-primary">
-                    <i class="fas fa-edit"></i> Edit
-                </button>
-                <button onclick="toggleServiceStatus('${service.id}')" class="btn btn-sm ${service.isActive ? 'btn-warning' : 'btn-success'}">
-                    <i class="fas fa-${service.isActive ? 'pause' : 'play'}"></i>
-                    ${service.isActive ? 'Deactivate' : 'Activate'}
-                </button>
-                <button onclick="deleteService('${service.id}')" class="btn btn-sm btn-danger">
-                    <i class="fas fa-trash"></i> Delete
-                </button>
-            </div>
-        </div>
-    `).join('');
+    const originalPrice = parseFloat(service.price);
+    let discountedPrice = originalPrice;
+    
+    if (service.discountType === 'percentage') {
+        discountedPrice = originalPrice - (originalPrice * service.discountValue / 100);
+    } else if (service.discountType === 'fixed') {
+        discountedPrice = Math.max(0, originalPrice - parseFloat(service.discountValue));
+    }
+    
+    const startDate = service.offerStartDate ? new Date(service.offerStartDate) : null;
+    const endDate = service.offerEndDate ? new Date(service.offerEndDate) : null;
+    const now = new Date();
+    
+    const isActive = (!startDate || now >= startDate) && (!endDate || now <= endDate);
+    
+    return {
+        originalPrice,
+        discountedPrice: Math.round(discountedPrice * 100) / 100,
+        discount: parseFloat(service.discountValue),
+        discountType: service.discountType,
+        isActive
+    };
 }
 
-function showServiceModal(serviceId = null) {
-    const modal = document.getElementById('serviceModal');
-    const form = document.getElementById('serviceForm');
-    const title = document.getElementById('serviceModalTitle');
+function openServiceModal() {
+    currentServiceId = null;
+    document.getElementById('serviceModalTitle').textContent = 'Add New Service';
+    document.getElementById('serviceForm').reset();
+    document.getElementById('serviceId').value = '';
+    document.getElementById('hasDiscount').checked = false;
+    document.getElementById('discountSection').style.display = 'none';
+    document.getElementById('serviceImagePreview').style.display = 'none';
+    document.getElementById('imageUploadPrompt').style.display = 'flex';
+    document.getElementById('serviceImageUrl').value = '';
+    document.getElementById('serviceModal').classList.add('active');
+    setupImageUploadHandler();
+}
+
+function setupImageUploadHandler() {
+    const imageInput = document.getElementById('serviceImage');
+    const previewArea = document.querySelector('.image-preview-area');
     
-    if (serviceId) {
-        // Edit mode
-        const service = services.find(s => s.id === serviceId);
-        if (service) {
-            title.textContent = 'Edit Service';
-            form.serviceName.value = service.name;
-            form.serviceDescription.value = service.description;
-            form.serviceCategory.value = service.category;
-            form.serviceDuration.value = service.duration;
-            form.servicePrice.value = service.price;
-            form.serviceActive.checked = service.isActive;
-            form.dataset.serviceId = serviceId;
+    if (!imageInput || !previewArea) return;
+    
+    // Click to upload
+    previewArea.addEventListener('click', () => imageInput.click());
+    
+    // Drag and drop
+    previewArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        previewArea.style.borderColor = 'var(--primary)';
+    });
+    
+    previewArea.addEventListener('dragleave', () => {
+        previewArea.style.borderColor = 'var(--border)';
+    });
+    
+    previewArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        previewArea.style.borderColor = 'var(--border)';
+        if (e.dataTransfer.files[0]) {
+            imageInput.files = e.dataTransfer.files;
+            previewServiceImage({ target: imageInput });
         }
-    } else {
-        // Create mode
-        title.textContent = 'Add New Service';
-        form.reset();
-        delete form.dataset.serviceId;
-    }
-    
-    App.showModal('serviceModal');
+    });
 }
 
-async function saveService() {
-    const form = document.getElementById('serviceForm');
-    const serviceId = form.dataset.serviceId;
+function previewServiceImage(event) {
+    const file = event.target.files[0];
+    if (!file) return;
     
-    // Validate form
-    if (!form.checkValidity()) {
-        form.reportValidity();
+    // Check file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+        alert('Image size must be less than 5MB');
         return;
     }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const preview = document.getElementById('serviceImagePreview');
+        const prompt = document.getElementById('imageUploadPrompt');
+        
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+        prompt.style.display = 'none';
+        
+        // Store as base64 in hidden input
+        document.getElementById('serviceImageUrl').value = e.target.result;
+    };
+    
+    reader.readAsDataURL(file);
+}
+
+function closeServiceModal() {
+    document.getElementById('serviceModal').classList.remove('active');
+    currentServiceId = null;
+}
+
+async function editService(serviceId) {
+    try {
+        const response = await authenticatedFetch(`/api/services/admin/${serviceId}`);
+        const result = await response.json();
+        const service = result.data?.service || result.service || result;
+        
+        if (service && service.id) {
+            document.getElementById('serviceModalTitle').textContent = 'Edit Service';
+            document.getElementById('serviceId').value = service.id;
+            document.getElementById('serviceName').value = service.name;
+            document.getElementById('serviceDescription').value = service.description;
+            document.getElementById('serviceCategory').value = service.category;
+            document.getElementById('serviceDuration').value = service.duration;
+            document.getElementById('servicePrice').value = service.price;
+            document.getElementById('preparationTime').value = service.preparationTime || 10;
+            document.getElementById('cleanupTime').value = service.cleanupTime || 10;
+            document.getElementById('serviceActive').checked = service.isActive;
+            
+            // Set discount fields
+            document.getElementById('hasDiscount').checked = service.hasDiscount;
+            document.getElementById('discountSection').style.display = service.hasDiscount ? 'block' : 'none';
+            document.getElementById('offerName').value = service.offerName || '';
+            document.getElementById('offerDescription').value = service.offerDescription || '';
+            document.getElementById('discountType').value = service.discountType || '';
+            document.getElementById('discountValue').value = service.discountValue || '';
+            
+            if (service.offerStartDate) {
+                document.getElementById('offerStartDate').value = new Date(service.offerStartDate).toISOString().slice(0, 16);
+            }
+            if (service.offerEndDate) {
+                document.getElementById('offerEndDate').value = new Date(service.offerEndDate).toISOString().slice(0, 16);
+            }
+            
+            // Set availability
+            if (service.availability) {
+                Object.keys(service.availability).forEach(day => {
+                    const checkbox = document.querySelector(`input[name="${day}"]`);
+                    const startInput = document.querySelector(`input[name="${day}Start"]`);
+                    const endInput = document.querySelector(`input[name="${day}End"]`);
+                    
+                    if (checkbox) checkbox.checked = service.availability[day].enabled;
+                    if (service.availability[day].slots && service.availability[day].slots.length > 0) {
+                        if (startInput) startInput.value = service.availability[day].slots[0].start;
+                        if (endInput) endInput.value = service.availability[day].slots[0].end;
+                    }
+                });
+            }
+            
+            // Set image
+            if (service.imageUrl) {
+                document.getElementById('serviceImageUrl').value = service.imageUrl;
+                document.getElementById('serviceImagePreview').src = service.imageUrl;
+                document.getElementById('serviceImagePreview').style.display = 'block';
+                document.getElementById('imageUploadPrompt').style.display = 'none';
+            } else {
+                document.getElementById('serviceImageUrl').value = '';
+                document.getElementById('serviceImagePreview').style.display = 'none';
+                document.getElementById('imageUploadPrompt').style.display = 'flex';
+            }
+            
+            document.getElementById('serviceModal').classList.add('active');
+        }
+    } catch (error) {
+        console.error('Error loading service:', error);
+        showError('Failed to load service details');
+    }
+}
+
+async function saveService(e) {
+    e.preventDefault();
+    
+    const availability = buildAvailability();
+    const imageUrl = document.getElementById('serviceImageUrl').value;
     
     const serviceData = {
-        name: form.serviceName.value,
-        description: form.serviceDescription.value,
-        category: form.serviceCategory.value,
-        duration: parseInt(form.serviceDuration.value),
-        price: parseFloat(form.servicePrice.value),
-        isActive: form.serviceActive.checked
+        name: document.getElementById('serviceName').value,
+        description: document.getElementById('serviceDescription').value,
+        category: document.getElementById('serviceCategory').value,
+        duration: parseInt(document.getElementById('serviceDuration').value),
+        price: parseFloat(document.getElementById('servicePrice').value),
+        preparationTime: parseInt(document.getElementById('preparationTime').value || 10),
+        cleanupTime: parseInt(document.getElementById('cleanupTime').value || 10),
+        isActive: document.getElementById('serviceActive').checked,
+        availability,
+        hasDiscount: document.getElementById('hasDiscount').checked,
+        discountType: document.getElementById('discountType').value || null,
+        discountValue: document.getElementById('discountValue').value ? parseFloat(document.getElementById('discountValue').value) : null,
+        offerName: document.getElementById('offerName').value || null,
+        offerDescription: document.getElementById('offerDescription').value || null,
+        offerStartDate: document.getElementById('offerStartDate').value ? new Date(document.getElementById('offerStartDate').value) : null,
+        offerEndDate: document.getElementById('offerEndDate').value ? new Date(document.getElementById('offerEndDate').value) : null,
+        imageUrl: imageUrl || null
     };
     
     try {
-        let response;
-        if (serviceId) {
-            // Update existing service
-            response = await App.apiRequest(`/api/admin/services/${serviceId}`, {
-                method: 'PUT',
-                body: JSON.stringify(serviceData)
-            });
+        const url = currentServiceId ? `/api/services/${currentServiceId}` : '/api/services';
+        const method = currentServiceId ? 'PUT' : 'POST';
+        
+        const response = await authenticatedFetch(url, {
+            method,
+            body: JSON.stringify(serviceData)
+        });
+        
+        if (response.ok) {
+            closeServiceModal();
+            loadServices();
+            showSuccess(currentServiceId ? 'Service updated successfully' : 'Service created successfully');
         } else {
-            // Create new service
-            response = await App.apiRequest('/api/admin/services', {
-                method: 'POST',
-                body: JSON.stringify(serviceData)
-            });
+            const error = await response.json();
+            showError(error.message || 'Failed to save service');
         }
-        
-        App.showSuccess(`Service ${serviceId ? 'updated' : 'created'} successfully`);
-        App.closeModal('serviceModal');
-        
-        // Reload services
-        await loadServices();
-        
     } catch (error) {
         console.error('Error saving service:', error);
-        App.showError(`Failed to ${serviceId ? 'update' : 'create'} service`);
+        showError('Error saving service: ' + error.message);
     }
 }
 
-async function toggleServiceStatus(serviceId) {
-    try {
-        const service = services.find(s => s.id === serviceId);
-        if (!service) return;
+function buildAvailability() {
+    const availability = {};
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    
+    days.forEach(day => {
+        const checkbox = document.querySelector(`input[name="${day}"]`);
+        const startInput = document.querySelector(`input[name="${day}Start"]`);
+        const endInput = document.querySelector(`input[name="${day}End"]`);
         
-        const newStatus = !service.isActive;
-        
-        await App.apiRequest(`/api/admin/services/${serviceId}/status`, {
-            method: 'PUT',
-            body: JSON.stringify({ isActive: newStatus })
-        });
-        
-        // Update local data
-        service.isActive = newStatus;
-        
-        // Refresh display
-        displayServices(services);
-        
-        App.showSuccess(`Service ${newStatus ? 'activated' : 'deactivated'} successfully`);
-        
-    } catch (error) {
-        console.error('Error toggling service status:', error);
-        App.showError('Failed to update service status');
-    }
+        availability[day] = {
+            enabled: checkbox && checkbox.checked,
+            slots: (checkbox && checkbox.checked && startInput && endInput) 
+                ? [{ start: startInput.value, end: endInput.value }]
+                : []
+        };
+    });
+    
+    return availability;
 }
 
 async function deleteService(serviceId) {
-    if (!confirm('Are you sure you want to delete this service? This action cannot be undone.')) {
-        return;
-    }
+    if (!confirm('Are you sure you want to delete this service?')) return;
     
     try {
-        await App.apiRequest(`/api/admin/services/${serviceId}`, {
-            method: 'DELETE'
-        });
-        
-        // Remove from local data
-        services = services.filter(s => s.id !== serviceId);
-        
-        // Refresh display
-        displayServices(services);
-        
-        App.showSuccess('Service deleted successfully');
-        
+        const response = await authenticatedFetch(`/api/services/${serviceId}`, { method: 'DELETE' });
+        if (response.ok) {
+            loadServices();
+            showSuccess('Service deleted successfully');
+        } else {
+            showError('Failed to delete service');
+        }
     } catch (error) {
         console.error('Error deleting service:', error);
-        App.showError('Failed to delete service');
+        showError('Error deleting service');
     }
 }
 
-// Customers Management
-async function loadCustomers() {
+function showError(message) {
+    alert(message);
+}
+
+function showSuccess(message) {
+    alert(message);
+}
+
+function logout() {
+    if (confirm('Are you sure you want to logout?')) {
+        window.location.href = '/logout';
+    }
+}
+
+// Bookings Page
+async function loadBookings() {
+    const bookingsTable = document.getElementById('bookingsTable');
+    if (!bookingsTable) return;
+    
     try {
-        App.showLoading('customersTable');
+        const response = await authenticatedFetch('/api/bookings');
+        const data = await response.json();
         
-    const response = await App.apiRequest('/api/admin/customers');
-    users = response.data.users || response.data.customers || [];
+        const bookings = Array.isArray(data) ? data : (data.data?.bookings || data.bookings || []);
         
-        displayCustomers(users);
+        if (bookings && bookings.length > 0) {
+            const tbody = bookingsTable.querySelector('tbody');
+            tbody.innerHTML = bookings.map(booking => `
+                <tr>
+                    <td>${new Date(booking.startTime).toLocaleString()}</td>
+                    <td>${booking.customerName || 'N/A'}</td>
+                    <td>${booking.serviceName || 'N/A'}</td>
+                    <td><span class="status-badge status-${booking.status?.toLowerCase()}">${booking.status}</span></td>
+                    <td>$${booking.price}</td>
+                    <td>
+                        <button class="btn btn-outline btn-sm" onclick="viewBooking(${booking.id})">View</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteBooking(${booking.id})">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        } else {
+            bookingsTable.querySelector('tbody').innerHTML = '<tr><td colspan="6" class="text-center">No bookings found</td></tr>';
+        }
+    } catch (error) {
+        console.error('Error loading bookings:', error);
+        if (bookingsTable.querySelector('tbody')) {
+            bookingsTable.querySelector('tbody').innerHTML = '<tr><td colspan="6" class="text-center" style="color: red;">Error loading bookings</td></tr>';
+        }
+    }
+}
+
+function viewBooking(bookingId) {
+    alert('View booking: ' + bookingId);
+}
+
+function deleteBooking(bookingId) {
+    if (!confirm('Are you sure you want to delete this booking?')) return;
+    alert('Delete booking: ' + bookingId);
+}
+
+// Customers Page
+async function loadCustomers() {
+    const customersTable = document.getElementById('customersTable');
+    if (!customersTable) return;
+    
+    try {
+        const response = await authenticatedFetch('/api/admin/users');
+        const data = await response.json();
         
+        const customers = Array.isArray(data) ? data : (data.data?.users || data.users || data || []);
+        
+        if (customers && customers.length > 0) {
+            const tbody = customersTable.querySelector('tbody');
+            tbody.innerHTML = customers.map(customer => `
+                <tr>
+                    <td>${customer.name || 'N/A'}</td>
+                    <td>${customer.email || 'N/A'}</td>
+                    <td>${customer.phone || 'N/A'}</td>
+                    <td>${customer.bookings?.length || 0}</td>
+                    <td>
+                        <button class="btn btn-outline btn-sm" onclick="viewCustomer(${customer.id})">View</button>
+                    </td>
+                </tr>
+            `).join('');
+        } else {
+            customersTable.querySelector('tbody').innerHTML = '<tr><td colspan="5" class="text-center">No customers found</td></tr>';
+        }
     } catch (error) {
         console.error('Error loading customers:', error);
-        document.getElementById('customersTable').innerHTML = `
-            <div class="error-message">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p>Failed to load customers.</p>
-            </div>
-        `;
+        if (customersTable.querySelector('tbody')) {
+            customersTable.querySelector('tbody').innerHTML = '<tr><td colspan="5" class="text-center" style="color: red;">Error loading customers</td></tr>';
+        }
     }
-}
-
-function displayCustomers(customersToShow) {
-    const table = document.getElementById('customersTable');
-    
-    if (customersToShow.length === 0) {
-        table.innerHTML = '<div class="no-data">No customers found</div>';
-        return;
-    }
-    
-    table.innerHTML = `
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Total Bookings</th>
-                    <th>Total Spent</th>
-                    <th>Last Visit</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${customersToShow.map(customer => `
-                    <tr>
-                        <td>${customer.name}</td>
-                        <td>${customer.email}</td>
-                        <td>${customer.phone || 'N/A'}</td>
-                        <td>${customer.totalBookings || 0}</td>
-                        <td>${App.formatCurrency(customer.totalSpent || 0)}</td>
-                        <td>${customer.lastVisit ? App.formatDate(customer.lastVisit) : 'Never'}</td>
-                        <td>
-                            <div class="action-buttons">
-                                <button onclick="viewCustomer('${customer.id}')" class="btn btn-sm btn-outline" title="View">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button onclick="viewCustomerBookings('${customer.id}')" class="btn btn-sm btn-outline" title="Bookings">
-                                    <i class="fas fa-calendar"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>
-    `;
-}
-
-// Analytics
-async function loadAnalytics() {
-    try {
-        App.showLoading('analyticsCharts');
-        
-        const response = await App.apiRequest('/api/admin/analytics');
-        analytics = response.data;
-        
-        renderAnalyticsCharts(analytics);
-        
-    } catch (error) {
-        console.error('Error loading analytics:', error);
-        document.getElementById('analyticsCharts').innerHTML = `
-            <div class="error-message">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p>Failed to load analytics data.</p>
-            </div>
-        `;
-    }
-}
-
-function renderAnalyticsCharts(data) {
-    // Revenue chart
-    renderRevenueChart(data.revenue);
-    
-    // Bookings chart
-    renderBookingsChart(data.bookings);
-    
-    // Popular services
-    renderPopularServices(data.popularServices);
-    
-    // Customer analytics
-    renderCustomerAnalytics(data.customers);
-}
-
-function renderRevenueChart(revenueData) {
-    // Simple revenue display (in a real app, you'd use Chart.js or similar)
-    const container = document.getElementById('revenueChart') || document.getElementById('categoryRevenueChart');
-    if (!container) return;
-    
-    container.innerHTML = `
-        <div class="chart-header">
-            <h3>Revenue Overview</h3>
-        </div>
-        <div class="revenue-stats">
-            <div class="stat-item">
-                <h4>This Month</h4>
-                <span class="amount">${App.formatCurrency(revenueData.thisMonth || 0)}</span>
-            </div>
-            <div class="stat-item">
-                <h4>Last Month</h4>
-                <span class="amount">${App.formatCurrency(revenueData.lastMonth || 0)}</span>
-            </div>
-            <div class="stat-item">
-                <h4>Total</h4>
-                <span class="amount">${App.formatCurrency(revenueData.total || 0)}</span>
-            </div>
-        </div>
-    `;
-}
-
-function renderBookingsChart(bookingsData) {
-    const container = document.getElementById('bookingsChart') || document.getElementById('hourlyTrendsChart');
-    if (!container) return;
-    
-    container.innerHTML = `
-        <div class="chart-header">
-            <h3>Bookings Overview</h3>
-        </div>
-        <div class="bookings-stats">
-            <div class="stat-item">
-                <h4>Today</h4>
-                <span class="count">${bookingsData.today || 0}</span>
-            </div>
-            <div class="stat-item">
-                <h4>This Week</h4>
-                <span class="count">${bookingsData.thisWeek || 0}</span>
-            </div>
-            <div class="stat-item">
-                <h4>This Month</h4>
-                <span class="count">${bookingsData.thisMonth || 0}</span>
-            </div>
-        </div>
-    `;
-}
-
-function renderPopularServices(servicesData) {
-    const container = document.getElementById('popularServices');
-    if (!container) return;
-    
-    if (!servicesData || servicesData.length === 0) {
-        container.innerHTML = '<div class="no-data">No service data available</div>';
-        return;
-    }
-    
-    container.innerHTML = `
-        <div class="chart-header">
-            <h3>Popular Services</h3>
-        </div>
-        <div class="services-list">
-            ${servicesData.map((service, index) => `
-                <div class="service-rank">
-                    <span class="rank">#${index + 1}</span>
-                    <div class="service-info">
-                        <strong>${service.name}</strong>
-                        <small>${service.bookingCount} bookings</small>
-                    </div>
-                    <span class="revenue">${App.formatCurrency(service.revenue)}</span>
-                </div>
-            `).join('')}
-        </div>
-    `;
-}
-
-// Real-time updates
-function initializeRealTimeUpdates() {
-    if (typeof io !== 'undefined') {
-        const socket = io();
-        
-        socket.on('booking-created', (data) => {
-            if (currentView === 'dashboard') {
-                loadDashboardData();
-            } else if (currentView === 'bookings') {
-                loadBookings();
-            }
-        });
-        
-        socket.on('booking-updated', (data) => {
-            if (currentView === 'bookings') {
-                loadBookings();
-            }
-        });
-        
-        socket.on('service-updated', (data) => {
-            if (currentView === 'services') {
-                loadServices();
-            }
-        });
-
-        socket.on('booking-deleted', (data) => {
-            if (currentView === 'bookings') {
-                loadBookings();
-            }
-        });
-    }
-}
-
-// Utility functions
-function viewBooking(bookingId) {
-    const booking = bookings.find(b => b.id === bookingId);
-    if (!booking) return;
-    
-    // Show booking details modal
-    const modal = document.getElementById('bookingDetailsModal');
-    const content = modal.querySelector('.modal-content');
-    
-    content.innerHTML = `
-        <div class="modal-header">
-            <h2>Booking Details</h2>
-            <button onclick="App.closeModal('bookingDetailsModal')">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="booking-details">
-                <h3>Customer Information</h3>
-                <p><strong>Name:</strong> ${booking.customerInfo.name}</p>
-                <p><strong>Email:</strong> ${booking.customerInfo.email}</p>
-                <p><strong>Phone:</strong> ${booking.customerInfo.phone}</p>
-                ${booking.customerInfo.notes ? `<p><strong>Notes:</strong> ${booking.customerInfo.notes}</p>` : ''}
-                
-                <h3>Service Information</h3>
-                <p><strong>Service:</strong> ${booking.service.name}</p>
-                <p><strong>Date:</strong> ${App.formatDate(booking.startTime)}</p>
-                <p><strong>Time:</strong> ${App.formatTime(booking.startTime)} - ${App.formatTime(booking.endTime)}</p>
-                <p><strong>Duration:</strong> ${App.formatDuration(booking.service.duration)}</p>
-                <p><strong>Status:</strong> <span class="status-badge ${booking.status}">${booking.status}</span></p>
-                
-                <h3>Pricing</h3>
-                <p><strong>Base Price:</strong> ${App.formatCurrency(booking.pricing.basePrice)}</p>
-                <p><strong>Final Price:</strong> ${App.formatCurrency(booking.pricing.finalPrice)}</p>
-            </div>
-        </div>
-    `;
-    
-    App.showModal('bookingDetailsModal');
-}
-
-function editBooking(bookingId) {
-    // In a real application, you would show an edit form
-    console.log('Edit booking:', bookingId);
-    App.showNotification('Booking edit functionality would be implemented here');
-}
-
-function cancelBooking(bookingId) {
-    if (!confirm('Are you sure you want to cancel this booking?')) {
-        return;
-    }
-    
-    updateBookingStatus(bookingId, 'cancelled');
-}
-
-function editService(serviceId) {
-    showServiceModal(serviceId);
 }
 
 function viewCustomer(customerId) {
-    console.log('View customer:', customerId);
-    App.showNotification('Customer details view would be implemented here');
+    alert('View customer: ' + customerId);
 }
 
-function viewCustomerBookings(customerId) {
-    console.log('View customer bookings:', customerId);
-    App.showNotification('Customer bookings view would be implemented here');
+// Analytics Page
+async function loadAnalytics() {
+    try {
+        const response = await authenticatedFetch('/api/admin/analytics');
+        const data = await response.json();
+        
+        const analyticsData = data.data || data;
+        const categoryRevenue = analyticsData.categoryRevenue || [];
+        const hourlyTrends = analyticsData.hourlyTrends || [];
+        const customerRetention = analyticsData.customerRetention || {};
+        
+        // Simple chart rendering
+        if (document.getElementById('bookingsChart')) {
+            const chartDiv = document.getElementById('bookingsChart');
+            chartDiv.innerHTML = `
+                <div style="padding: 20px;">
+                    <h3>Category Revenue</h3>
+                    <div style="margin-bottom: 20px;">
+                        ${categoryRevenue.map(cat => `
+                            <div style="margin-bottom: 10px; padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
+                                <strong>${cat.category}</strong>: $${parseFloat(cat.revenue).toFixed(2)} (${cat.bookings} bookings)
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <h3>Customer Retention</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div style="padding: 15px; background: var(--bg-secondary); border-radius: 8px;">
+                            <strong>New Customers</strong><br>
+                            ${customerRetention.new?.customers || 0} customers
+                        </div>
+                        <div style="padding: 15px; background: var(--bg-secondary); border-radius: 8px;">
+                            <strong>Returning Customers</strong><br>
+                            ${customerRetention.returning?.customers || 0} customers
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading analytics:', error);
+        if (document.getElementById('bookingsChart')) {
+            document.getElementById('bookingsChart').innerHTML = '<div style="color: red; padding: 20px;">Error loading analytics</div>';
+        }
+    }
+}
+
+// Settings Page
+async function loadSettings() {
+    try {
+        const response = await authenticatedFetch('/api/admin/settings/notifications');
+        const data = await response.json();
+        
+        const settings = data.data || data;
+        const settingsDiv = document.getElementById('notificationSettings');
+        
+        if (settingsDiv) {
+            settingsDiv.innerHTML = `
+                <div style="padding: 20px;">
+                    <h3>Notification Settings</h3>
+                    <div style="background: var(--bg-secondary); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <p><strong>Email Notifications:</strong> ${settings.emailNotifications ? 'Enabled' : 'Disabled'}</p>
+                        <p><strong>SMS Notifications:</strong> ${settings.smsNotifications ? 'Enabled' : 'Disabled'}</p>
+                        <p><strong>Reminder Email:</strong> ${settings.reminderEmail ? 'Enabled' : 'Disabled'}</p>
+                        <p><strong>Reminder SMS:</strong> ${settings.reminderSms ? 'Enabled' : 'Disabled'}</p>
+                        <p><strong>Booking Confirmation Email:</strong> ${settings.bookingConfirmationEmail ? 'Enabled' : 'Disabled'}</p>
+                        <p><strong>Booking Confirmation SMS:</strong> ${settings.bookingConfirmationSms ? 'Enabled' : 'Disabled'}</p>
+                    </div>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading settings:', error);
+        const settingsDiv = document.getElementById('notificationSettings');
+        if (settingsDiv) {
+            settingsDiv.innerHTML = '<div style="color: red; padding: 20px;">Error loading settings</div>';
+        }
+    }
 }

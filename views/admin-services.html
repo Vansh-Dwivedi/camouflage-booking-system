@@ -148,6 +148,76 @@
                         <label><input type="checkbox" id="serviceActive" checked> Active</label>
                     </div>
 
+                    <!-- Image Upload Section -->
+                    <div class="section-divider">
+                        <h4>Service Image</h4>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Service Image</label>
+                        <div class="image-preview-area" style="border: 2px dashed var(--border); border-radius: 8px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.3s ease;">
+                            <div id="imageUploadPrompt" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                                <i class="fas fa-cloud-upload-alt" style="font-size: 32px; color: var(--text-secondary);"></i>
+                                <div>
+                                    <p style="margin: 0; font-weight: 500;">Click or drag image here</p>
+                                    <p style="margin: 4px 0 0; font-size: 12px; color: var(--text-secondary);">Max 5MB</p>
+                                </div>
+                            </div>
+                            <img id="serviceImagePreview" style="display: none; max-width: 100%; max-height: 300px; border-radius: 8px;">
+                        </div>
+                        <input type="file" id="serviceImage" accept="image/*" style="display: none;">
+                        <input type="hidden" id="serviceImageUrl">
+                    </div>
+
+                    <!-- Discount/Offer Section -->
+                    <div class="section-divider">
+                        <h4>Discount & Offers</h4>
+                    </div>
+
+                    <div class="form-group">
+                        <label><input type="checkbox" id="hasDiscount"> Add Discount/Offer</label>
+                    </div>
+
+                    <div id="discountSection" style="display:none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="offerName">Offer Name *</label>
+                                <input type="text" id="offerName" placeholder="e.g., Summer Sale, New Customer Offer">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="offerDescription">Offer Description</label>
+                            <textarea id="offerDescription" rows="2" placeholder="Describe the offer..."></textarea>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="discountType">Discount Type *</label>
+                                <select id="discountType">
+                                    <option value="">Select Type</option>
+                                    <option value="percentage">Percentage (%)</option>
+                                    <option value="fixed">Fixed Amount ($)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="discountValue">Discount Value *</label>
+                                <input type="number" id="discountValue" min="0" step="0.01" placeholder="e.g., 20 or 50">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="offerStartDate">Start Date</label>
+                                <input type="datetime-local" id="offerStartDate">
+                            </div>
+                            <div class="form-group">
+                                <label for="offerEndDate">End Date</label>
+                                <input type="datetime-local" id="offerEndDate">
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="availability-settings">
                         <h4>Availability Schedule</h4>
                         <div class="days-grid">
@@ -255,6 +325,11 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.js"></script>
     <script src="/js/app.js"></script>
+    <script src="/js/auth.js"></script>
     <script src="/js/admin.js"></script>
+    <script>
+        // Verify admin authentication on page load
+        requireAdmin();
+    </script>
 </body>
 </html>

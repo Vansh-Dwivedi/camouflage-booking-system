@@ -1,686 +1,566 @@
-// Booking system functionality
-let bookingData = {
-    step: 1,
-    service: null,
-    selectedDate: null,
-    selectedTime: null,
-    customerInfo: {}
-};
+// Booking System - Main Logic
+let selectedServices = []; // Array to store multiple selected services
+let selectedDate = null;   // Selected booking date
+let selectedTime = null;   // Selected booking time
+let allServices = [];       // KEEP ORIGINAL SERVICES LIST!
+let services = [];         // Filtered/displayed services
+let currentStep = 1;
 
-let services = [];
-let availableSlots = [];
-let currentMonth = new Date();
-
-document.addEventListener('DOMContentLoaded', () => {
-    initializeBooking();
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    loadServices();
+    setupCalendar();
+    setupEventListeners();
 });
 
-async function initializeBooking() {
-    try {
-        // Load services
-        await loadServices();
-        
-        // Initialize service filters
-        initializeServiceFilters();
-        
-        // Check for pre-selected service from URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const serviceId = urlParams.get('service');
-        if (serviceId) {
-            selectService(serviceId);
-        }
-        
-        // Initialize step navigation
-        initializeStepNavigation();
-        
-        // Initialize calendar
-        initializeCalendar();
-        
-        // Initialize form
-        initializeCustomerForm();
-        
-    } catch (error) {
-        console.error('Error initializing booking:', error);
-        App.showError('Failed to load booking system. Please refresh the page.');
-    }
-}
+// ===========================
+// STEP 1: SERVICE SELECTION
+// ===========================
 
-// Load services from API
 async function loadServices() {
     try {
-        App.showLoading('servicesList');
+        const response = await fetch('/api/services');
+        if (!response.ok) throw new Error('Failed to fetch services');
         
-        const response = await App.apiRequest('/api/services');
-        services = response.data.services;
+        const data = await response.json();
+        allServices = data.data?.services || data.services || [];
+        services = [...allServices];  // Copy for filtering
         
-        // Load categories for filter
-        await loadServiceCategories();
-        
-        // Display services
-        displayServices(services);
-        
+        renderServices();
+        populateCategories();
     } catch (error) {
         console.error('Error loading services:', error);
-        document.getElementById('servicesList').innerHTML = `
-            <div class="error-message">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p>Unable to load services. Please try again later.</p>
-            </div>
-        `;
+        showError('Failed to load services. Please refresh the page.');
     }
 }
 
-async function loadServiceCategories() {
-    try {
-        const response = await App.apiRequest('/api/services/meta/categories');
-        const categories = response.data.categories;
-        
-        const categoryFilter = document.getElementById('categoryFilter');
-        categoryFilter.innerHTML = '<option value="all">All Categories</option>';
-        
-        categories.forEach(category => {
-            const option = document.createElement('option');
-            option.value = category.value;
-            option.textContent = category.label;
-            categoryFilter.appendChild(option);
-        });
-        
-    } catch (error) {
-        console.error('Error loading categories:', error);
-    }
-}
-
-function displayServices(servicesToShow) {
-    const servicesList = document.getElementById('servicesList');
+function renderServices() {
+    const container = document.getElementById('servicesList');
+    if (!container) return;
     
-    if (servicesToShow.length === 0) {
-        servicesList.innerHTML = `
-            <div class="no-services">
-                <i class="fas fa-search"></i>
-                <p>No services found matching your criteria.</p>
-            </div>
-        `;
+    if (services.length === 0) {
+        container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #64748b;">No services available. Please check back later.</div>';
         return;
     }
     
-    servicesList.innerHTML = servicesToShow.map(service => `
-        <div class="service-option" data-service-id="${service.id}" onclick="selectService('${service.id}')">
-            <h3>${service.name}</h3>
-            <div class="service-category">${service.category}</div>
-            <p class="service-description">${service.description}</p>
-            <div class="service-meta">
-                <div class="service-duration">
-                    <i class="fas fa-clock"></i>
-                    <span>${App.formatDuration(service.duration)}</span>
+    container.innerHTML = services.map(service => {
+        const isSelected = selectedServices.some(s => s.id === service.id);
+        return `
+            <div class="service-card ${isSelected ? 'selected' : ''}" 
+                 onclick="toggleService(${service.id})">
+                <div class="service-checkbox">
+                    <input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation()">
                 </div>
-                <div class="service-price">${App.formatCurrency(service.price)}</div>
+                <div class="service-name">${service.name}</div>
+                <div class="service-description">${service.description || 'Professional service'}</div>
+                <div class="service-details">
+                    <span class="service-duration">⏱ ${service.duration || 30} min</span>
+                    <span class="service-price">$${parseFloat(service.price || 0).toFixed(2)}</span>
+                </div>
             </div>
+        `;
+    }).join('');
+}
+
+function toggleService(serviceId) {
+    const service = services.find(s => s.id === serviceId);
+    if (!service) {
+        console.error('❌ Service not found:', serviceId);
+        return;
+    }
+    
+    const index = selectedServices.findIndex(s => s.id === serviceId);
+    
+    if (index > -1) {
+        // Remove service
+        selectedServices.splice(index, 1);
+        console.log('➖ Removed service:', service.name);
+    } else {
+        // Add service
+        selectedServices.push({
+            id: service.id,
+            name: service.name,
+            price: parseFloat(service.price || 0),
+            duration: service.duration || 30
+        });
+        console.log('➕ Added service:', service.name);
+    }
+    
+    console.log('📊 Total selected services:', selectedServices.length);
+    
+    renderServices();
+    updateSelectedServicesInfo();
+    
+    // Enable continue button only if at least one service is selected
+    const continueBtn = document.getElementById('step1Next');
+    if (continueBtn) {
+        continueBtn.disabled = selectedServices.length === 0;
+        console.log('🔘 Continue button disabled:', continueBtn.disabled);
+    }
+}
+
+function updateSelectedServicesInfo() {
+    const container = document.getElementById('selectedServiceInfo');
+    if (!container) return;
+    
+    if (selectedServices.length === 0) {
+        container.innerHTML = '<p style="color: #94a3b8; text-align: center;">Select services above to continue</p>';
+        return;
+    }
+    
+    const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration, 0);
+    const totalPrice = selectedServices.reduce((sum, s) => sum + s.price, 0);
+    
+    container.innerHTML = `
+        <div class="services-summary">
+            <div class="summary-header">✨ Your Selection</div>
+            ${selectedServices.map(s => `
+                <div class="summary-service">
+                    <span class="summary-service-name">${s.name}</span>
+                    <span class="summary-service-price">$${s.price.toFixed(2)}</span>
+                </div>
+            `).join('')}
+            <div class="summary-totals">
+                <div class="summary-total-item">
+                    <span>Total Duration:</span>
+                    <strong>${totalDuration} minutes</strong>
+                </div>
+                <div class="summary-total-item">
+                    <span>Total Price:</span>
+                    <strong>$${totalPrice.toFixed(2)}</strong>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function populateCategories() {
+    const select = document.getElementById('categoryFilter');
+    const searchInput = document.getElementById('searchService');
+    
+    if (!select) return;
+    
+    // Get unique categories from ALL services (not filtered)
+    const categories = [...new Set(allServices.map(s => s.category).filter(Boolean))];
+    
+    // Clear existing options except "All Categories"
+    while (select.options.length > 1) {
+        select.remove(1);
+    }
+    
+    // Add categories
+    categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+        select.appendChild(option);
+    });
+    
+    // Add event listeners (only once)
+    select.removeEventListener('change', filterServices);
+    select.addEventListener('change', filterServices);
+    
+    if (searchInput) {
+        searchInput.removeEventListener('input', filterServices);
+        searchInput.addEventListener('input', filterServices);
+    }
+}
+
+function filterServices() {
+    const category = document.getElementById('categoryFilter')?.value;
+    const search = document.getElementById('searchService')?.value.toLowerCase();
+    
+    // START FROM ALL SERVICES, NOT FILTERED ONES!
+    let filtered = [...allServices];
+    
+    if (category && category !== 'all') {
+        filtered = filtered.filter(s => s.category === category);
+    }
+    
+    if (search) {
+        filtered = filtered.filter(s => 
+            s.name.toLowerCase().includes(search) || 
+            s.description?.toLowerCase().includes(search)
+        );
+    }
+    
+    // Update the display services
+    services = filtered.length > 0 ? filtered : allServices;
+    renderServices();
+}
+
+// ===========================
+// STEP 2: DATE & TIME
+// ===========================
+
+function setupCalendar() {
+    renderCalendar();
+    
+    document.getElementById('prevMonth')?.addEventListener('click', () => {
+        currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1);
+        renderCalendar();
+    });
+    
+    document.getElementById('nextMonth')?.addEventListener('click', () => {
+        currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1);
+        renderCalendar();
+    });
+}
+
+let currentMonth = new Date();
+
+function renderCalendar() {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    
+    // Update month display
+    const monthDisplay = document.getElementById('currentMonth');
+    if (monthDisplay) {
+        monthDisplay.textContent = currentMonth.toLocaleDateString('en-US', { 
+            month: 'long', 
+            year: 'numeric' 
+        });
+    }
+    
+    // Get first day and number of days
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+    
+    // Build grid
+    let html = '';
+    
+    // Day headers
+    const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    dayHeaders.forEach(day => {
+        html += `<div class="calendar-day-header">${day}</div>`;
+    });
+    
+    // Previous month days
+    for (let i = firstDay - 1; i >= 0; i--) {
+        html += `<div class="calendar-day other-month">${daysInPrevMonth - i}</div>`;
+    }
+    
+    // Current month days
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month, day);
+        const isToday = date.getTime() === today.getTime();
+        const isPast = date < today;
+        const isSelected = selectedDate && date.getTime() === new Date(selectedDate).getTime();
+        
+        let classes = 'calendar-day';
+        if (isPast) classes += ' disabled';
+        if (isSelected) classes += ' selected';
+        
+        html += `
+            <div class="${classes}" 
+                 onclick="${!isPast ? `selectDate('${date.toISOString().split('T')[0]}')` : ''}">
+                ${day}
+            </div>
+        `;
+    }
+    
+    // Next month days
+    const totalCells = firstDay + daysInMonth;
+    const remainingCells = 42 - totalCells;
+    for (let day = 1; day <= remainingCells; day++) {
+        html += `<div class="calendar-day other-month">${day}</div>`;
+    }
+    
+    const grid = document.getElementById('calendarGrid');
+    if (grid) grid.innerHTML = html;
+}
+
+function selectDate(date) {
+    selectedDate = date;
+    selectedTime = null;
+    
+    renderCalendar();
+    loadTimeSlots(date);
+}
+
+async function loadTimeSlots(date) {
+    if (selectedServices.length === 0) return;
+    
+    try {
+        // Get available slots for the longest service (most restrictive)
+        const longestService = selectedServices.reduce((max, s) => 
+            s.duration > max.duration ? s : max
+        );
+        
+        const response = await fetch(`/api/services/${longestService.id}/availability/${date}`);
+        if (!response.ok) throw new Error('Failed to load time slots');
+        
+        const data = await response.json();
+        const slots = data.data?.slots || generateDefaultSlots();
+        
+        renderTimeSlots(slots);
+    } catch (error) {
+        console.error('Error loading time slots:', error);
+        renderTimeSlots(generateDefaultSlots());
+    }
+}
+
+function generateDefaultSlots() {
+    const slots = [];
+    for (let hour = 9; hour < 18; hour++) {
+        for (let min = 0; min < 60; min += 30) {
+            const time = `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+            slots.push({ time, available: true });
+        }
+    }
+    return slots;
+}
+
+function renderTimeSlots(slots) {
+    const container = document.getElementById('timeSlots');
+    if (!container) return;
+    
+    if (slots.length === 0) {
+        container.innerHTML = '<p class="no-date-selected">No time slots available for this date</p>';
+        return;
+    }
+    
+    container.innerHTML = slots.map(slot => `
+        <div class="time-slot ${!slot.available ? 'unavailable' : ''} ${selectedTime === slot.time ? 'selected' : ''}"
+             onclick="${slot.available ? `selectTime('${slot.time}')` : ''}">
+            ${slot.time}
         </div>
     `).join('');
 }
 
-function initializeServiceFilters() {
-    const categoryFilter = document.getElementById('categoryFilter');
-    const searchInput = document.getElementById('searchService');
+function selectTime(time) {
+    selectedTime = time;
+    renderTimeSlots(generateDefaultSlots());
     
-    categoryFilter.addEventListener('change', filterServices);
-    searchInput.addEventListener('input', App.debounce(filterServices, 300));
-}
-
-function filterServices() {
-    const category = document.getElementById('categoryFilter').value;
-    const search = document.getElementById('searchService').value.toLowerCase();
-    
-    let filteredServices = services;
-    
-    // Filter by category
-    if (category !== 'all') {
-        filteredServices = filteredServices.filter(service => service.category === category);
-    }
-    
-    // Filter by search term
-    if (search) {
-        filteredServices = filteredServices.filter(service => 
-            service.name.toLowerCase().includes(search) ||
-            service.description.toLowerCase().includes(search) ||
-            service.tags.some(tag => tag.toLowerCase().includes(search))
-        );
-    }
-    
-    displayServices(filteredServices);
-}
-
-function selectService(serviceId) {
-    // Convert to number if it's a string
-    const id = typeof serviceId === 'string' ? parseInt(serviceId) : serviceId;
-    
-    console.log('Selecting service:', id, 'Available services:', services);
-    
-    // Clear previous selection
-    document.querySelectorAll('.service-option').forEach(option => {
-        option.classList.remove('selected');
-    });
-    
-    // Select new service
-    const selectedOption = document.querySelector(`[data-service-id="${id}"]`);
-    if (selectedOption) {
-        selectedOption.classList.add('selected');
-    }
-    
-    // Store selected service
-    bookingData.service = services.find(s => s.id === id);
-    
-    console.log('Selected service:', bookingData.service);
-    
-    // Enable next button
-    const nextBtn = document.getElementById('step1Next');
-    nextBtn.disabled = false;
-    
-    // Show selected service info in step 2
-    updateSelectedServiceInfo();
-    
-    // Join socket room for real-time updates
-    joinBookingRoom(serviceId);
-}
-
-function updateSelectedServiceInfo() {
-    const serviceInfo = document.getElementById('selectedServiceInfo');
-    if (!bookingData.service || !serviceInfo) return;
-    
-    const service = bookingData.service;
-    serviceInfo.innerHTML = `
-        <h3>${service.name}</h3>
-        <div class="service-details">
-            <div class="service-detail">
-                <i class="fas fa-clock"></i>
-                <span>Duration: ${App.formatDuration(service.duration)}</span>
-            </div>
-            <div class="service-detail">
-                <i class="fas fa-dollar-sign"></i>
-                <span>Price: ${App.formatCurrency(service.price)}</span>
-            </div>
-            <div class="service-detail">
-                <i class="fas fa-tag"></i>
-                <span>Category: ${service.category}</span>
-            </div>
-        </div>
-        <p>${service.description}</p>
-    `;
-}
-
-// Step navigation
-function initializeStepNavigation() {
-    document.getElementById('step1Next').addEventListener('click', () => {
-        if (bookingData.service) {
-            goToStep(2);
-        }
-    });
-    
-    document.getElementById('step2Next').addEventListener('click', () => {
-        if (bookingData.selectedDate && bookingData.selectedTime) {
-            goToStep(3);
-        }
-    });
-    
-    document.getElementById('step3Next').addEventListener('click', handleBookingSubmission);
-}
-
-function goToStep(stepNumber) {
-    // Hide current step
-    document.querySelectorAll('.booking-step').forEach(step => {
-        step.classList.remove('active');
-    });
-    
-    // Show target step
-    document.getElementById(`step${stepNumber}`).classList.add('active');
-    
-    // Update progress bar
-    updateProgressBar(stepNumber);
-    
-    // Update booking data
-    bookingData.step = stepNumber;
-    
-    // Step-specific actions
-    if (stepNumber === 2) {
-        generateCalendar();
-    } else if (stepNumber === 3) {
-        updateBookingSummary();
-        prefillCustomerInfo();
-    }
-    
-    // Scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function previousStep() {
-    if (bookingData.step > 1) {
-        goToStep(bookingData.step - 1);
-    }
-}
-
-function updateProgressBar(currentStep) {
-    document.querySelectorAll('.step').forEach((step, index) => {
-        const stepNumber = index + 1;
-        
-        if (stepNumber < currentStep) {
-            step.classList.add('completed');
-            step.classList.remove('active');
-        } else if (stepNumber === currentStep) {
-            step.classList.add('active');
-            step.classList.remove('completed');
-        } else {
-            step.classList.remove('active', 'completed');
-        }
-    });
-}
-
-// Calendar functionality
-function initializeCalendar() {
-    document.getElementById('prevMonth').addEventListener('click', () => {
-        currentMonth.setMonth(currentMonth.getMonth() - 1);
-        generateCalendar();
-    });
-    
-    document.getElementById('nextMonth').addEventListener('click', () => {
-        currentMonth.setMonth(currentMonth.getMonth() + 1);
-        generateCalendar();
-    });
-}
-
-function generateCalendar() {
-    const calendarGrid = document.getElementById('calendarGrid');
-    const currentMonthElement = document.getElementById('currentMonth');
-    
-    // Update month header
-    currentMonthElement.textContent = currentMonth.toLocaleDateString('en-US', {
-        month: 'long',
-        year: 'numeric'
-    });
-    
-    // Clear calendar
-    calendarGrid.innerHTML = '';
-    
-    // Add weekday headers
-    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    weekdays.forEach(day => {
-        const dayElement = document.createElement('div');
-        dayElement.className = 'calendar-day calendar-weekday';
-        dayElement.textContent = day;
-        calendarGrid.appendChild(dayElement);
-    });
-    
-    // Get first day of month and number of days
-    const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-    const lastDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // Add empty cells for days before first day of month
-    for (let i = 0; i < firstDay.getDay(); i++) {
-        const dayElement = document.createElement('div');
-        dayElement.className = 'calendar-day disabled';
-        calendarGrid.appendChild(dayElement);
-    }
-    
-    // Add days of month
-    for (let day = 1; day <= lastDay.getDate(); day++) {
-        const dayElement = document.createElement('div');
-        dayElement.className = 'calendar-day';
-        dayElement.textContent = day;
-        
-        const dayDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-        dayDate.setHours(0, 0, 0, 0);
-        
-        // Disable past dates
-        const isPast = dayDate < today;
-        console.log(`Day ${day}: ${dayDate.toDateString()} - isPast: ${isPast}, today: ${today.toDateString()}`);
-        
-        if (isPast) {
-            dayElement.classList.add('disabled');
-            // Make sure past dates can't be clicked
-            dayElement.style.pointerEvents = 'none';
-        } else {
-            dayElement.addEventListener('click', () => {
-                console.log('Date clicked:', dayDate.toDateString());
-                selectDate(dayDate);
-            });
-            
-            // Mark today
-            if (dayDate.toDateString() === new Date().toDateString()) {
-                dayElement.classList.add('today');
-            }
-            
-            // Mark selected date
-            if (bookingData.selectedDate && dayDate.toDateString() === bookingData.selectedDate.toDateString()) {
-                dayElement.classList.add('selected');
-            }
-        }
-        
-        calendarGrid.appendChild(dayElement);
-    }
-}
-
-async function selectDate(date) {
-    // Clear previous selection
-    document.querySelectorAll('.calendar-day').forEach(day => {
-        day.classList.remove('selected');
-    });
-    
-    // Select new date
-    event.target.classList.add('selected');
-    bookingData.selectedDate = date;
-    
-    // Load available time slots
-    await loadTimeSlots(date);
-}
-
-async function loadTimeSlots(date) {
-    const timeSlotsContainer = document.getElementById('timeSlots');
-    
-    try {
-        timeSlotsContainer.innerHTML = `
-            <div class="loading">
-                <i class="fas fa-spinner fa-spin"></i>
-                <p>Loading available times...</p>
-            </div>
-        `;
-        
-        const dateString = date.toISOString().split('T')[0];
-        const response = await App.apiRequest(`/api/services/${bookingData.service.id}/availability/${dateString}`);
-        
-        availableSlots = response.data.availableSlots;
-        
-        if (availableSlots.length === 0) {
-            timeSlotsContainer.innerHTML = `
-                <div class="no-slots-available">
-                    <i class="fas fa-calendar-times"></i>
-                    <p>No available time slots for this date. Please select another date.</p>
-                </div>
-            `;
-            return;
-        }
-        
-        // Display time slots
-        timeSlotsContainer.innerHTML = availableSlots.map(slot => `
-            <div class="time-slot" data-time="${slot.start}" onclick="selectTimeSlot('${slot.start}', '${slot.end}')">
-                ${formatTimeSlot(slot.start, slot.end)}
-            </div>
-        `).join('');
-        
-    } catch (error) {
-        console.error('Error loading time slots:', error);
-        timeSlotsContainer.innerHTML = `
-            <div class="error-message">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p>Unable to load available times. Please try again.</p>
-            </div>
-        `;
-    }
-}
-
-function formatTimeSlot(startTime, endTime) {
-    const start = new Date(`2000-01-01T${startTime}`);
-    const end = new Date(`2000-01-01T${endTime}`);
-    
-    return `${start.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
-        minute: '2-digit', 
-        hour12: true 
-    })} - ${end.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
-        minute: '2-digit', 
-        hour12: true 
-    })}`;
-}
-
-function selectTimeSlot(startTime, endTime) {
-    // Clear previous selection
-    document.querySelectorAll('.time-slot').forEach(slot => {
-        slot.classList.remove('selected');
-    });
-    
-    // Select new time slot
-    event.target.classList.add('selected');
-    
-    bookingData.selectedTime = { start: startTime, end: endTime };
-    
-    // Enable next button
+    // Enable continue button
     document.getElementById('step2Next').disabled = false;
 }
 
-// Customer form
-function initializeCustomerForm() {
+// ===========================
+// STEP 3: CUSTOMER DETAILS
+// ===========================
+
+function setupEventListeners() {
+    // Step navigation
+    document.getElementById('step1Next')?.addEventListener('click', () => goToStep(2));
+    document.getElementById('step2Next')?.addEventListener('click', () => goToStep(3));
+    document.getElementById('step3Next')?.addEventListener('click', submitBooking);
+    
+    // Form validation
     const form = document.getElementById('customerForm');
-    form.addEventListener('submit', (e) => e.preventDefault());
-    
-    // Real-time validation
-    const inputs = form.querySelectorAll('input, textarea');
-    inputs.forEach(input => {
-        input.addEventListener('blur', () => validateCustomerField(input));
-        input.addEventListener('input', () => {
-            if (input.classList.contains('error')) {
-                input.classList.remove('error');
-            }
-        });
-    });
-}
-
-function prefillCustomerInfo() {
-    if (currentUser) {
-        document.getElementById('customerName').value = currentUser.name || '';
-        document.getElementById('customerEmail').value = currentUser.email || '';
-        document.getElementById('customerPhone').value = currentUser.phone || '';
+    if (form) {
+        form.addEventListener('change', validateForm);
     }
 }
 
-function updateBookingSummary() {
-    if (!bookingData.service || !bookingData.selectedDate || !bookingData.selectedTime) return;
+function validateForm() {
+    const name = document.getElementById('customerName')?.value.trim();
+    const email = document.getElementById('customerEmail')?.value.trim();
+    const phone = document.getElementById('customerPhone')?.value.trim();
     
-    document.getElementById('summaryService').textContent = bookingData.service.name;
-    document.getElementById('summaryDate').textContent = App.formatDate(bookingData.selectedDate);
-    document.getElementById('summaryTime').textContent = formatTimeSlot(bookingData.selectedTime.start, bookingData.selectedTime.end);
-    document.getElementById('summaryDuration').textContent = App.formatDuration(bookingData.service.duration);
-    document.getElementById('summaryPrice').textContent = App.formatCurrency(bookingData.service.price);
+    const isValid = name && email && phone;
+    document.getElementById('step3Next').disabled = !isValid;
 }
 
-function validateCustomerField(input) {
-    const value = input.value.trim();
-    let isValid = true;
-    let message = '';
-    
-    switch (input.name) {
-        case 'name':
-            if (!value) {
-                isValid = false;
-                message = 'Name is required.';
-            } else if (value.length < 2) {
-                isValid = false;
-                message = 'Name must be at least 2 characters long.';
-            }
-            break;
-            
-        case 'email':
-            if (!value) {
-                isValid = false;
-                message = 'Email is required.';
-            } else if (!App.validateEmail(value)) {
-                isValid = false;
-                message = 'Please enter a valid email address.';
-            }
-            break;
-            
-        case 'phone':
-            if (!value) {
-                isValid = false;
-                message = 'Phone number is required.';
-            } else if (!App.validatePhone(value)) {
-                isValid = false;
-                message = 'Please enter a valid phone number.';
-            }
-            break;
-    }
-    
-    // Update field state
-    const errorElement = input.parentNode.querySelector('.error-message');
-    if (errorElement) {
-        errorElement.remove();
-    }
-    
-    if (isValid) {
-        input.classList.remove('error');
-        input.classList.add('success');
-    } else {
-        input.classList.remove('success');
-        input.classList.add('error');
-        
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'error-message';
-        errorDiv.textContent = message;
-        input.parentNode.appendChild(errorDiv);
-    }
-    
-    return isValid;
-}
+// ===========================
+// STEP 4: CONFIRMATION
+// ===========================
 
-// Booking submission
-async function handleBookingSubmission() {
-    const form = document.getElementById('customerForm');
-    const formData = App.serializeForm(form);
-    
-    // Validate form
-    let isValid = true;
-    const inputs = form.querySelectorAll('input[required]');
-    inputs.forEach(input => {
-        if (!validateCustomerField(input)) {
-            isValid = false;
-        }
-    });
-    
-    if (!isValid) {
-        App.showError('Please correct the errors in the form.');
+async function submitBooking() {
+    if (selectedServices.length === 0 || !selectedDate || !selectedTime) {
+        showError('Please select services, date, and time');
         return;
     }
     
+    const name = document.getElementById('customerName')?.value;
+    const email = document.getElementById('customerEmail')?.value;
+    const phone = document.getElementById('customerPhone')?.value;
+    const countryCode = document.getElementById('customerCountryCode')?.value || '+1';
+    const notes = document.getElementById('specialRequests')?.value;
+    
+    if (!name || !email || !phone) {
+        showError('Please fill in all required fields');
+        return;
+    }
+    
+    showLoading(true);
+    
     try {
-        // Show loading
-        App.showModal('loadingModal');
+        const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration, 0);
+        const totalPrice = selectedServices.reduce((sum, s) => sum + s.price, 0);
         
-        // Prepare booking data
-        const ccEl = document.getElementById('customerCountryCode');
-        const rawPhone = String(formData.phone || '').trim();
-        const hasPlus = rawPhone.startsWith('+');
-        const countryCode = ccEl ? ccEl.value : '';
-        const normalizedPhone = hasPlus ? rawPhone : (countryCode + rawPhone.replace(/[^\d]/g,''));
-        const bookingRequest = {
-            serviceId: bookingData.service.id,
-            startTime: new Date(`${bookingData.selectedDate.toDateString()} ${bookingData.selectedTime.start}`).toISOString(),
-            customerInfo: {
-                name: formData.name,
-                email: formData.email,
-                phone: normalizedPhone,
-                notes: formData.notes || ''
-            }
-        };
+        const startTime = new Date(`${selectedDate}T${selectedTime}:00`);
+        const endTime = new Date(startTime.getTime() + totalDuration * 60000);
         
-        // Submit booking
-        const response = await App.apiRequest('/api/bookings', {
+        // For multi-service bookings, we create one booking with multiple services
+        // In a real system, you might want to create separate bookings or a composite booking
+        const response = await fetch('/api/bookings', {
             method: 'POST',
-            body: JSON.stringify(bookingRequest)
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                serviceId: selectedServices[0].id, // Primary service
+                services: selectedServices.map(s => ({ id: s.id, name: s.name, price: s.price })), // All services
+                customerName: name,
+                customerEmail: email,
+                customerPhone: countryCode + phone,
+                startTime: startTime.toISOString(),
+                endTime: endTime.toISOString(),
+                notes: notes,
+                totalDuration: totalDuration,
+                totalPrice: totalPrice,
+                status: 'confirmed'
+            })
         });
         
-        // Hide loading
-        App.closeModal('loadingModal');
+        const data = await response.json();
         
-        // Show confirmation
-        showBookingConfirmation(response.data.booking);
+        if (!response.ok) {
+            throw new Error(data.message || 'Booking failed');
+        }
+        
+        showLoading(false);
+        displayConfirmation(data.data.booking);
         goToStep(4);
         
     } catch (error) {
-        console.error('Booking submission error:', error);
-        App.closeModal('loadingModal');
-        
-        if (error.message.includes('no longer available')) {
-            App.showError('Sorry, this time slot is no longer available. Please select another time.');
-            goToStep(2);
-        } else {
-            App.showError(error.message || 'Failed to create booking. Please try again.');
-        }
+        showLoading(false);
+        console.error('Booking error:', error);
+        showError(error.message || 'Failed to create booking');
     }
 }
 
-function showBookingConfirmation(booking) {
-    const confirmationDetails = document.getElementById('confirmationDetails');
+function displayConfirmation(booking) {
+    const container = document.getElementById('confirmationDetails');
+    if (!container) return;
     
-    confirmationDetails.innerHTML = `
-        <h3>Booking Details</h3>
-        <div class="confirmation-item">
-            <span>Booking ID:</span>
-            <span><strong>${booking.id}</strong></span>
+    const startTime = new Date(booking.startTime);
+    const endTime = new Date(booking.endTime);
+    const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration, 0);
+    const totalPrice = selectedServices.reduce((sum, s) => sum + s.price, 0);
+    
+    let servicesHtml = selectedServices.map(s => `
+        <div class="summary-service-item">
+            <span>• ${s.name}</span>
+            <span>$${s.price.toFixed(2)}</span>
         </div>
-        <div class="confirmation-item">
-            <span>Service:</span>
-            <span>${booking.service.name}</span>
+    `).join('');
+    
+    container.innerHTML = `
+        <div class="summary-item">
+            <strong>Services:</strong>
         </div>
-        <div class="confirmation-item">
-            <span>Date:</span>
-            <span>${App.formatDate(booking.startTime)}</span>
+        ${servicesHtml}
+        <div class="summary-item" style="margin-top: 12px;">
+            <strong>Date:</strong>
+            <span>${startTime.toLocaleDateString()}</span>
         </div>
-        <div class="confirmation-item">
-            <span>Time:</span>
-            <span>${App.formatTime(booking.startTime)} - ${App.formatTime(booking.endTime)}</span>
+        <div class="summary-item">
+            <strong>Time:</strong>
+            <span>${startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
         </div>
-        <div class="confirmation-item">
-            <span>Duration:</span>
-            <span>${App.formatDuration(booking.service.duration)}</span>
+        <div class="summary-item">
+            <strong>Duration:</strong>
+            <span>${totalDuration} minutes</span>
         </div>
-        <div class="confirmation-item">
-            <span>Price:</span>
-            <span><strong>${App.formatCurrency(booking.pricing.finalPrice)}</strong></span>
+        <div class="summary-item">
+            <strong>Name:</strong>
+            <span>${booking.customerName}</span>
         </div>
-        <div class="confirmation-item">
-            <span>Status:</span>
-            <span class="status-badge ${booking.status}">${booking.status}</span>
+        <div class="summary-item">
+            <strong>Email:</strong>
+            <span>${booking.customerEmail}</span>
         </div>
-        
-        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e9ecef;">
-            <p><strong>What's Next?</strong></p>
-            <ul style="text-align: left; margin: 1rem 0;">
-                <li>You'll receive a confirmation email shortly</li>
-                <li>We'll send you a reminder 24 hours before your appointment</li>
-                <li>Please arrive 10 minutes early</li>
-                <li>If you need to cancel or reschedule, please do so at least 24 hours in advance</li>
-            </ul>
+        <div class="summary-item">
+            <strong>Phone:</strong>
+            <span>${booking.customerPhone}</span>
+        </div>
+        <div class="summary-total">
+            <span>💰 Total Price:</span>
+            <span class="price">$${totalPrice.toFixed(2)}</span>
         </div>
     `;
 }
 
-// Socket.IO real-time updates
-if (typeof io !== 'undefined') {
-    socket = io();
+// ===========================
+// STEP NAVIGATION
+// ===========================
+
+function goToStep(step) {
+    console.log('🚀 Going to step:', step);  // DEBUG
+    console.log('Selected services:', selectedServices);  // DEBUG
     
-    socket.on('booking-created', (data) => {
-        if (bookingData.service && data.serviceId === bookingData.service.id) {
-            // Refresh time slots if user is viewing the same service
-            if (bookingData.selectedDate) {
-                loadTimeSlots(bookingData.selectedDate);
-            }
+    // Hide all steps
+    document.querySelectorAll('.booking-step').forEach(el => {
+        el.classList.remove('active');
+    });
+    
+    // Show target step
+    const targetStep = document.getElementById(`step${step}`);
+    if (targetStep) {
+        targetStep.classList.add('active');
+        console.log('✅ Step ' + step + ' activated');  // DEBUG
+    } else {
+        console.error('❌ Step element not found: step' + step);  // DEBUG
+    }
+    
+    // Update progress bar
+    document.querySelectorAll('.step').forEach((el, idx) => {
+        el.classList.remove('active', 'completed');
+        if (idx + 1 < step) {
+            el.classList.add('completed');
+        } else if (idx + 1 === step) {
+            el.classList.add('active');
         }
     });
     
-    socket.on('booking-cancelled', (data) => {
-        if (bookingData.service && data.serviceId === bookingData.service.id) {
-            // Refresh time slots
-            if (bookingData.selectedDate) {
-                loadTimeSlots(bookingData.selectedDate);
-            }
-        }
-    });
+    // Update info for step 2
+    if (step === 2 && selectedServices.length > 0) {
+        updateSelectedServicesInfo();
+    }
+    
+    currentStep = step;
 }
 
-// Join booking room for real-time updates
-function joinBookingRoom(serviceId) {
-    if (socket) {
-        socket.emit('join-booking-room', { serviceId });
+function previousStep() {
+    if (currentStep > 1) {
+        goToStep(currentStep - 1);
     }
 }
 
+// ===========================
+// UTILITIES
+// ===========================
+
+function showError(message) {
+    const modal = document.getElementById('errorModal');
+    const msgEl = document.getElementById('errorMessage');
+    
+    if (msgEl) msgEl.textContent = message;
+    if (modal) {
+        modal.style.display = 'flex';
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.style.display = 'none';
+}
+
+function showLoading(show) {
+    const modal = document.getElementById('loadingModal');
+    if (modal) {
+        modal.style.display = show ? 'flex' : 'none';
+    }
+}
+
+// Close modals on ESC key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        document.getElementById('errorModal').style.display = 'none';
+        document.getElementById('loadingModal').style.display = 'none';
+    }
+});

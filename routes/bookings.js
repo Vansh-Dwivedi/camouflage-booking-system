@@ -9,6 +9,46 @@ const { validateBooking, validateBookingUpdate } = require('../middleware/valida
 
 const router = express.Router();
 
+// Get all bookings (admin endpoint)
+router.get('/', async (req, res) => {
+  try {
+    const bookings = await Booking.findAll({
+      include: [
+        { model: Service, as: 'service', attributes: ['id', 'name', 'price'] },
+        { model: User, as: 'customer', attributes: ['id', 'name', 'email', 'phone'] }
+      ],
+      order: [['startTime', 'DESC']]
+    });
+
+    res.json({
+      success: true,
+      data: {
+        bookings: bookings.map(b => ({
+          id: b.id,
+          startTime: b.startTime,
+          endTime: b.endTime,
+          status: b.status,
+          price: b.pricing?.finalPrice || b.price,
+          customerName: b.customer?.name || b.customerInfo?.name,
+          customerEmail: b.customer?.email || b.customerInfo?.email,
+          customerPhone: b.customer?.phone || b.customerInfo?.phone,
+          serviceName: b.service?.name,
+          serviceId: b.serviceId,
+          notes: b.notes
+        })),
+        count: bookings.length
+      }
+    });
+  } catch (error) {
+    console.error('Get all bookings error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch bookings',
+      error: error.message
+    });
+  }
+});
+
 // Create new booking
 router.post('/', optionalAuth, validateBooking, async (req, res) => {
   try {
