@@ -404,17 +404,15 @@ async function submitBooking() {
             body: JSON.stringify({
                 serviceId: selectedServices[0].id, // Primary service
                 services: selectedServices.map(s => ({ id: s.id, name: s.name, price: s.price })), // All services
+                customerName: name,
+                customerEmail: email,
+                customerPhone: countryCode + phone,
                 startTime: startTime.toISOString(),
                 endTime: endTime.toISOString(),
+                notes: notes,
                 totalDuration: totalDuration,
                 totalPrice: totalPrice,
-                status: 'confirmed',
-                customerInfo: {
-                    name: name,
-                    email: email,
-                    phone: countryCode + phone,
-                    notes: notes
-                }
+                status: 'confirmed'
             })
         });
         

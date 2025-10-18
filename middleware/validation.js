@@ -5,7 +5,7 @@ const { body, validationResult } = require('express-validator');
 // and nested (customerInfo) structures
 const normalizeBookingPayload = (req, res, next) => {
   // Only process POST requests to bookings endpoint
-  if (req.method === 'POST' && req.path.includes('/bookings')) {
+  if (req.method === 'POST') {
     // Initialize customerInfo if it doesn't exist
     if (!req.body.customerInfo) {
       req.body.customerInfo = {};

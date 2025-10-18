@@ -87,9 +87,9 @@ async function handleRegister(e) {
 }
 
 async function loginAsAdmin() {
-    // Real admin login
-    const email = 'admin@camouflage.studio';
-    const password = 'Camouflage@123';
+    // Demo admin login
+    const email = 'admin@camouflage.com';
+    const password = 'admin123';
     
     try {
         const response = await fetch('/api/auth/login', {
@@ -112,23 +112,17 @@ async function loginAsAdmin() {
         showAuthError('Admin login failed: ' + error.message);
     }
 }
-function openCustomerEmailInput() {
-    const email = prompt('Enter customer email to login:');
-    if (email && email.trim()) {
-        loginAsCustomer(email.trim());
-    }
-}
 
-async function loginAsCustomer(customerEmail) {
-    // Customer login with email-based password
-    // Password follows pattern: Customer@123
-    const password = 'Customer@123';
+async function loginAsCustomer() {
+    // Demo customer login
+    const email = 'customer@example.com';
+    const password = 'customer123';
     
     try {
         const response = await fetch('/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: customerEmail, password })
+            body: JSON.stringify({ email, password })
         });
         
         const data = await response.json();
