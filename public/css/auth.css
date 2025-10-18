@@ -1,0 +1,491 @@
+/* Auth Page Styles (Login & Register) */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* Main Container */
+.auth-container {
+    display: flex;
+    gap: 40px;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-width: 900px;
+}
+
+/* Form Container */
+.auth-form-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    padding: 40px;
+    width: 100%;
+    max-width: 400px;
+    animation: slideIn 0.5s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Auth Header */
+.auth-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.auth-header .logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    font-size: 24px;
+    font-weight: bold;
+    color: #667eea;
+}
+
+.auth-header .logo i {
+    font-size: 32px;
+}
+
+.auth-header h2 {
+    font-size: 28px;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.auth-header p {
+    font-size: 14px;
+    color: #666;
+}
+
+/* Form Styles */
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 25px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.form-group input {
+    padding: 12px 15px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    font-family: inherit;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-group input::placeholder {
+    color: #999;
+}
+
+.form-group small {
+    font-size: 12px;
+    color: #999;
+    margin-top: 4px;
+}
+
+/* Button Styles */
+.btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: inherit;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-full {
+    width: 100%;
+}
+
+.btn-outline {
+    background: white;
+    color: #667eea;
+    border: 2px solid #667eea;
+}
+
+.btn-outline:hover {
+    background: #f8f9ff;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.btn-small {
+    padding: 10px 16px;
+    font-size: 13px;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Auth Links */
+.auth-links {
+    text-align: center;
+    padding: 20px 0;
+    border-top: 1px solid #e0e0e0;
+    border-bottom: 1px solid #e0e0e0;
+    margin: 25px 0;
+}
+
+.auth-links p {
+    font-size: 14px;
+    color: #666;
+    margin: 8px 0;
+}
+
+.auth-links a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.3s ease;
+}
+
+.auth-links a:hover {
+    color: #764ba2;
+    text-decoration: underline;
+}
+
+/* Demo Accounts Section */
+.demo-accounts {
+    margin-top: 25px;
+}
+
+.demo-accounts h4 {
+    font-size: 12px;
+    font-weight: 700;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.demo-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.demo-buttons .btn {
+    font-size: 13px;
+}
+
+/* Quick Login Section */
+.quick-login {
+    margin-top: 25px;
+}
+
+.quick-login h4 {
+    font-size: 12px;
+    font-weight: 700;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.quick-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.quick-buttons .btn {
+    font-size: 13px;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal.show {
+    display: flex;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    padding: 40px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Loading Content */
+.loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.loading i {
+    font-size: 40px;
+    color: #667eea;
+}
+
+.loading p {
+    font-size: 16px;
+    color: #666;
+}
+
+/* Error Content */
+.error-content,
+.success-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.error-content i {
+    font-size: 40px;
+    color: #ff6b6b;
+}
+
+.error-content h3,
+.success-content h3 {
+    font-size: 20px;
+    color: #1a1a1a;
+}
+
+.error-content p,
+.success-content p {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+/* Success Content */
+.success-content i {
+    font-size: 40px;
+    color: #51cf66;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .auth-container {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .auth-form-container {
+        max-width: 100%;
+    }
+
+    .auth-header h2 {
+        font-size: 24px;
+    }
+
+    .auth-header p {
+        font-size: 12px;
+    }
+
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+}
+
+@media (max-width: 480px) {
+    .auth-form-container {
+        padding: 25px;
+    }
+
+    .auth-header {
+        margin-bottom: 20px;
+    }
+
+    .auth-header .logo {
+        font-size: 18px;
+    }
+
+    .auth-header .logo i {
+        font-size: 24px;
+    }
+
+    .auth-header h2 {
+        font-size: 20px;
+    }
+
+    .form-group {
+        gap: 6px;
+    }
+
+    .form-group input {
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+
+    .btn {
+        padding: 11px 16px;
+        font-size: 13px;
+    }
+
+    .demo-buttons {
+        flex-direction: column;
+    }
+}
+
+/* Dark Mode Support (Optional) */
+@media (prefers-color-scheme: dark) {
+    body {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    }
+
+    .auth-form-container {
+        background: #0f3460;
+        color: #ecf0f1;
+    }
+
+    .auth-header h2,
+    .auth-header p {
+        color: #ecf0f1;
+    }
+
+    .form-group label {
+        color: #ecf0f1;
+    }
+
+    .form-group input {
+        background: #1a1a2e;
+        border-color: #16213e;
+        color: #ecf0f1;
+    }
+
+    .form-group input:focus {
+        border-color: #667eea;
+    }
+
+    .form-group input::placeholder {
+        color: #7f8c8d;
+    }
+
+    .auth-links {
+        border-color: #16213e;
+        color: #bdc3c7;
+    }
+
+    .demo-accounts h4 {
+        color: #7f8c8d;
+    }
+
+    .modal {
+        background: rgba(0, 0, 0, 0.8);
+    }
+
+    .modal-content {
+        background: #0f3460;
+        color: #ecf0f1;
+    }
+
+    .error-content h3,
+    .success-content h3 {
+        color: #ecf0f1;
+    }
+
+    .error-content p,
+    .success-content p {
+        color: #bdc3c7;
+    }
+}
